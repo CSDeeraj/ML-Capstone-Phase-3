@@ -25,14 +25,15 @@ Reproduction + extension of Tungal et al., *Smart Imaging Lab Framework…*, Hea
 4. Possible improvements if time: the CNNs under-fit at ~92% train acc in the quick profile — try more epochs / weaker augmentation for CovidNet-Plus; consider 128px input.
 5. User asked about a **cloud run**: a cloud session likely has no GPU; only worth it if GPU is available. Check `nvidia-smi` first; otherwise run on the user's GPU PC.
 
-## Setup on a new machine
+## Setup on a new machine (the user will continue on a different PC, possibly with a GPU)
 ```
-python -m venv .venv && .venv\Scripts\activate         # (or source .venv/bin/activate)
-pip install -r requirements.txt                         # pick the right torch build, see file
-set CAPSTONE_DATA=C:\path\to\data                       # optional; default ./data
-python src/download_data.py                             # ~4 GB images + 0.7 MB blood CSV
-python src/prepare_images.py
+git clone https://github.com/CSDeeraj/ML-Capstone-Phase-3.git && cd ML-Capstone-Phase-3
+python setup_env.py            # venv + CUDA/CPU PyTorch auto-picked;  `--check` reports GPU status
+# activate .venv, then:
+python src/run_all.py --profile full      # if GPU (paper settings);  --profile quick on CPU
 ```
+Data (4 GB) is not in git: `src/download_data.py` fetches it, resumable + checksum-verified. The blood CSV is committed in `data/`.
+Imaging results currently in `results/` came from a CPU (quick profile); a GPU `full` run will overwrite them — keep the old JSON if a comparison is wanted.
 Note for Windows: keep the repo/data paths short (git failed once on a very long scratch path).
 
 ## Honesty rules for the site

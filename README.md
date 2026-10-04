@@ -8,12 +8,18 @@ Reproduction and extension of **Tungal et al., “Artificial Intelligence Integr
 
 Status, results and next steps: see [HANDOFF.md](HANDOFF.md).
 
-## Run
+## Run on a new PC (Windows / Linux / macOS)
 ```bash
-pip install -r requirements.txt            # install the torch build matching your machine
-python src/run_all.py --profile quick      # CPU laptop
-python src/run_all.py --profile full       # GPU: paper's settings (100 epochs, 10-fold, lr 1e-4, batch 16)
+git clone https://github.com/CSDeeraj/ML-Capstone-Phase-3.git   # keep the path short on Windows
+cd ML-Capstone-Phase-3
+python setup_env.py                     # creates .venv; installs CUDA or CPU PyTorch automatically
+# activate:  .venv\Scripts\activate   (Windows)   or   source .venv/bin/activate
+python src/run_all.py --profile full    # GPU: paper's settings (100 epochs, 10-fold CV, lr 1e-4, batch 16)
+python src/run_all.py --profile quick   # CPU: scaled-down budget
 ```
+`run_all.py` downloads the data (resumable, ~4 GB), caches images, trains X-ray + CT + blood models and refreshes the website data.
+Individual steps: `src/download_data.py`, `src/prepare_images.py`, `src/imaging.py --modality xray|ct`, `src/blood.py`, `src/export_site.py`.
+A GPU run can be checked first with `python setup_env.py --check`.
 Device is auto-detected (CUDA → Apple MPS → CPU). Data goes to `./data` or `$CAPSTONE_DATA` (git-ignored).
 
 ## Data (public)
