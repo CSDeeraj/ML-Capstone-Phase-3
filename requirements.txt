@@ -1,0 +1,18 @@
+numpy
+pandas
+scipy
+scikit-learn>=1.4
+imbalanced-learn
+lightgbm
+xgboost
+optuna
+shap
+matplotlib
+pillow
+joblib
+tqdm
+# PyTorch: install the build that matches your machine, e.g.
+#   CPU only :  pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+#   NVIDIA   :  pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
+torch
+torchvision
