@@ -1,0 +1,105 @@
+﻿x-ray: (9544, 100, 100, 3), COVID=4044, non-COVID=5500 | device CPU
+[fold 0] paper CNN
+  ep   1/50 loss 0.6933 acc 0.4900 | val 0.6933 0.4237 | 42s
+  ep   2/50 loss 0.6696 acc 0.6048 | val 0.6234 0.6810 | 43s
+  ep   3/50 loss 0.6197 acc 0.6750 | val 0.5978 0.6938 | 41s
+  ep   4/50 loss 0.5989 acc 0.6845 | val 0.5923 0.6973 | 42s
+  ep   5/50 loss 0.5555 acc 0.7145 | val 0.4827 0.7567 | 43s
+  ep   6/50 loss 0.5029 acc 0.7375 | val 0.4431 0.7893 | 43s
+  ep   7/50 loss 0.4543 acc 0.7735 | val 0.3944 0.8137 | 44s
+  ep   8/50 loss 0.4209 acc 0.7966 | val 0.4009 0.8114 | 45s
+  ep   9/50 loss 0.4168 acc 0.8016 | val 0.3799 0.8324 | 46s
+  ep  10/50 loss 0.3928 acc 0.8169 | val 0.4065 0.8184 | 44s
+  ep  11/50 loss 0.3773 acc 0.8199 | val 0.3503 0.8370 | 44s
+  ep  12/50 loss 0.3588 acc 0.8326 | val 0.3389 0.8417 | 44s
+  ep  13/50 loss 0.3457 acc 0.8351 | val 0.3235 0.8708 | 44s
+  ep  14/50 loss 0.3401 acc 0.8458 | val 0.3140 0.8719 | 45s
+  ep  15/50 loss 0.3260 acc 0.8470 | val 0.3249 0.8487 | 46s
+  ep  16/50 loss 0.3161 acc 0.8564 | val 0.3149 0.8685 | 44s
+  ep  17/50 loss 0.3061 acc 0.8596 | val 0.3078 0.8719 | 44s
+  ep  18/50 loss 0.2987 acc 0.8635 | val 0.3028 0.8696 | 45s
+  ep  19/50 loss 0.2861 acc 0.8704 | val 0.2927 0.8708 | 45s
+  ep  20/50 loss 0.2823 acc 0.8695 | val 0.2855 0.8766 | 44s
+  ep  21/50 loss 0.2732 acc 0.8755 | val 0.2846 0.8754 | 44s
+  ep  22/50 loss 0.2737 acc 0.8732 | val 0.2872 0.8696 | 44s
+  ep  23/50 loss 0.2722 acc 0.8763 | val 0.2853 0.8778 | 45s
+  ep  24/50 loss 0.2610 acc 0.8833 | val 0.2866 0.8708 | 44s
+  ep  25/50 loss 0.2522 acc 0.8828 | val 0.2997 0.8685 | 47s
+  ep  26/50 loss 0.2414 acc 0.8895 | val 0.3108 0.8778 | 48s
+  ep  27/50 loss 0.2516 acc 0.8875 | val 0.2756 0.8766 | 57s
+  ep  28/50 loss 0.2365 acc 0.8920 | val 0.2791 0.8743 | 54s
+  ep  29/50 loss 0.2289 acc 0.8983 | val 0.2906 0.8789 | 55s
+  ep  30/50 loss 0.2238 acc 0.8984 | val 0.2867 0.8836 | 56s
+  ep  31/50 loss 0.2282 acc 0.8994 | val 0.2610 0.8836 | 55s
+  ep  32/50 loss 0.2143 acc 0.8996 | val 0.2934 0.8871 | 54s
+  ep  33/50 loss 0.2167 acc 0.9005 | val 0.2911 0.8859 | 54s
+  ep  34/50 loss 0.2216 acc 0.9013 | val 0.2981 0.8976 | 53s
+  ep  35/50 loss 0.2106 acc 0.9047 | val 0.3147 0.8778 | 53s
+  ep  36/50 loss 0.2080 acc 0.9045 | val 0.3212 0.8813 | 53s
+  ep  37/50 loss 0.2051 acc 0.9066 | val 0.2877 0.8847 | 55s
+  ep  38/50 loss 0.2064 acc 0.9058 | val 0.2589 0.8976 | 58s
+  ep  39/50 loss 0.2025 acc 0.9094 | val 0.2764 0.8906 | 60s
+  ep  40/50 loss 0.2019 acc 0.9118 | val 0.2796 0.8859 | 52s
+  ep  41/50 loss 0.1966 acc 0.9100 | val 0.3079 0.8929 | 55s
+  ep  42/50 loss 0.1901 acc 0.9164 | val 0.2754 0.8836 | 56s
+  ep  43/50 loss 0.1879 acc 0.9159 | val 0.2524 0.8929 | 53s
+  ep  44/50 loss 0.1904 acc 0.9128 | val 0.2829 0.8929 | 54s
+  ep  45/50 loss 0.1805 acc 0.9193 | val 0.3321 0.8917 | 53s
+  ep  46/50 loss 0.1822 acc 0.9168 | val 0.2922 0.8941 | 52s
+  ep  47/50 loss 0.1736 acc 0.9228 | val 0.3195 0.8999 | 49s
+  ep  48/50 loss 0.1858 acc 0.9164 | val 0.2741 0.8917 | 48s
+  ep  49/50 loss 0.1858 acc 0.9173 | val 0.2663 0.9022 | 48s
+  ep  50/50 loss 0.1795 acc 0.9202 | val 0.3079 0.8999 | 48s
+  hybrid ML on paper-CNN features
+[fold 0] CovidNet-Plus
+  ep   1/30 loss 0.5209 acc 0.7577 | val 0.4959 0.7602 | 47s
+  ep   2/30 loss 0.4513 acc 0.8067 | val 0.4328 0.8347 | 48s
+  ep   3/30 loss 0.4332 acc 0.8198 | val 0.3849 0.8393 | 49s
+  ep   4/30 loss 0.4237 acc 0.8272 | val 0.4797 0.8184 | 49s
+  ep   5/30 loss 0.4103 acc 0.8386 | val 0.4974 0.7602 | 48s
+  ep   6/30 loss 0.3936 acc 0.8458 | val 0.4568 0.7660 | 49s
+  ep   7/30 loss 0.3847 acc 0.8569 | val 0.3655 0.8335 | 49s
+  ep   8/30 loss 0.3700 acc 0.8558 | val 0.3454 0.8463 | 48s
+  ep   9/30 loss 0.3532 acc 0.8699 | val 0.2823 0.8871 | 48s
+  ep  10/30 loss 0.3483 acc 0.8745 | val 0.3545 0.8568 | 48s
+  ep  11/30 loss 0.3399 acc 0.8776 | val 0.4700 0.8114 | 48s
+  ep  12/30 loss 0.3362 acc 0.8806 | val 0.3735 0.8440 | 48s
+  ep  13/30 loss 0.3269 acc 0.8827 | val 0.3171 0.8650 | 48s
+  ep  14/30 loss 0.3251 acc 0.8843 | val 0.3420 0.8580 | 48s
+  ep  15/30 loss 0.3223 acc 0.8884 | val 0.2779 0.8754 | 48s
+  ep  16/30 loss 0.3106 acc 0.8942 | val 0.2787 0.8766 | 48s
+  ep  17/30 loss 0.3112 acc 0.8899 | val 0.2490 0.8964 | 49s
+  ep  18/30 loss 0.3008 acc 0.8983 | val 0.2417 0.8987 | 48s
+  ep  19/30 loss 0.2917 acc 0.9035 | val 0.2355 0.8906 | 49s
+  ep  20/30 loss 0.2889 acc 0.9035 | val 0.2583 0.8847 | 48s
+  ep  21/30 loss 0.2882 acc 0.9060 | val 0.2427 0.8929 | 47s
+  ep  22/30 loss 0.2833 acc 0.9060 | val 0.2327 0.8952 | 48s
+  ep  23/30 loss 0.2784 acc 0.9100 | val 0.2400 0.8952 | 48s
+  ep  24/30 loss 0.2727 acc 0.9106 | val 0.2280 0.9010 | 48s
+  ep  25/30 loss 0.2696 acc 0.9135 | val 0.2212 0.8999 | 48s
+  ep  26/30 loss 0.2648 acc 0.9173 | val 0.2279 0.8964 | 49s
+  ep  27/30 loss 0.2620 acc 0.9168 | val 0.2261 0.8987 | 49s
+  ep  28/30 loss 0.2608 acc 0.9221 | val 0.2298 0.9022 | 49s
+  ep  29/30 loss 0.2590 acc 0.9224 | val 0.2276 0.9010 | 49s
+  ep  30/30 loss 0.2573 acc 0.9194 | val 0.2270 0.8999 | 49s
+  ensemble + temperature scaling
+python.exe : C:\Users\Satya\ML-Capstone-Phase-3\src\imaging.py:261: UserWarning: Converting a tensor with 
+requires_grad=True to a scalar may lead to unexpected behavior.
+At line:1 char:396
++ ... tone_data"; & ..\.venv\Scripts\python imaging.py --modality xray --pr ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (C:\Users\Satya\...ected behavior.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Consider using tensor.detach() first. (Triggered internally at 
+C:\actions-runner\_work\pytorch\pytorch\torch\csrc\autograd\generated\python_variable_methods.cpp:821.)
+  return float(t.clamp(min=0.05))
+  Paper CNN                      acc 87.85 sens 93.58 spec 83.64 auc 0.9515 ece 0.0354
+  CNN+HGB                        acc 87.02 sens 84.94 spec 88.55 auc 0.9493 ece 0.0774
+  CNN+ERT                        acc 87.96 sens 86.91 spec 88.73 auc 0.9292 ece 0.0603
+  CNN+GB                         acc 87.43 sens 87.65 spec 87.27 auc 0.9453 ece 0.0573
+  CNN+DT                         acc 84.82 sens 79.75 spec 88.55 auc 0.8407 ece 0.0700
+  CovidNet-Plus                  acc 90.89 sens 95.80 spec 87.27 auc 0.9762 ece 0.0477
+  CovidNet-Plus + TTA            acc 91.20 sens 96.54 spec 87.27 auc 0.9771 ece 0.0455
+  Plus Ensemble (calibrated)     acc 91.41 sens 94.57 spec 89.09 auc 0.9763 ece 0.0257
+saved results/imaging_xray.json

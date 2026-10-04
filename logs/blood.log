@@ -1,0 +1,33 @@
+﻿4430 rows, 1136 patients, severe 1088, non-severe 3342
+paper protocol: SMOTE-ENN [3342, 1088] -> [2393, 3103]
+  ERT   acc 97.58  auc 0.9980
+  LGBM  acc 96.85  auc 0.9944
+  RF    acc 96.31  auc 0.9944
+  kNN   acc 97.53  auc 0.9969
+  DT    acc 91.25  auc 0.9097
+  SVM   acc 92.45  auc 0.9768
+  AB    acc 87.06  auc 0.9464
+honest protocol (patient-grouped CV, resampling inside training folds)
+  ERT   smote-enn acc 81.09 auc 0.8703 | none acc 84.47
+  LGBM  smote-enn acc 81.07 auc 0.8701 | none acc 84.01
+  RF    smote-enn acc 80.10 auc 0.8704 | none acc 84.37
+  kNN   smote-enn acc 73.37 auc 0.8082 | none acc 80.61
+  DT    smote-enn acc 75.25 auc 0.7183 | none acc 78.86
+  SVM   smote-enn acc 76.73 auc 0.8629 | none acc 84.24
+  AB    smote-enn acc 75.06 auc 0.8520 | none acc 82.30
+feature ablation (ERT, honest protocol)
+  Paper 15 blood markers                             acc 84.31 bacc 72.09 auc 0.8816
+  + haematology ratios (NLR, PLR, SII, Mentzer)      acc 84.52 bacc 73.05 auc 0.8861
+  + clinical context (age, sex)                      acc 86.22 bacc 75.38 auc 0.9017
+improved models: Optuna (20 trials) + stacking on paper15+ratios+age/sex, 10 patient-grouped folds
+  outer fold 1/10  stack acc 78.56 auc 0.9044  (147s)
+  outer fold 2/10  stack acc 76.77 auc 0.8596  (144s)
+  outer fold 3/10  stack acc 82.61 auc 0.9105  (185s)
+  outer fold 4/10  stack acc 87.47 auc 0.9544  (174s)
+  outer fold 5/10  stack acc 85.42 auc 0.9156  (165s)
+  outer fold 6/10  stack acc 80.86 auc 0.8923  (197s)
+  outer fold 7/10  stack acc 83.67 auc 0.9219  (252s)
+  outer fold 8/10  stack acc 77.95 auc 0.8328  (225s)
+  outer fold 9/10  stack acc 83.90 auc 0.9077  (291s)
+  outer fold 10/10  stack acc 85.36 auc 0.9423  (244s)
+saved results/blood.json
