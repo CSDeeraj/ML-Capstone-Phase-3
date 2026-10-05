@@ -25,6 +25,13 @@ Reproduction + extension of Tungal et al., *Smart Imaging Lab Framework…*, Hea
 4. Possible improvements if time: the CNNs under-fit at ~92% train acc in the quick profile — try more epochs / weaker augmentation for CovidNet-Plus; consider 128px input.
 5. User asked about a **cloud run**: a cloud session likely has no GPU; only worth it if GPU is available. Check `nvidia-smi` first; otherwise run on the user's GPU PC.
 
+## Rubric work (branch claude/rubric-excellent-54zut3, PR #1)
+- Docs: `docs/LITERATURE.md`, `docs/DATA.md`, `docs/PRESENTATION.md`, `docs/RUBRIC.md`.
+- To run on the PC with the images, then `python src/export_site.py`:
+  `python src/data_audit.py` (image audit), `python src/imaging_tests.py --modality xray` and `--modality ct` (after imaging.py has saved models).
+- Optional paper-identical image balancing: `python src/imaging.py --modality xray --balance paper` (SMOTE-ENN on all images before CV, as published;
+  needs several GB of RAM) and `--balance smoteenn` (training splits only). Results go to `results/imaging_<mod>_<balance>.json`; the default run is untouched.
+
 ## Setup on a new machine (the user will continue on a different PC, possibly with a GPU)
 ```
 git clone https://github.com/CSDeeraj/ML-Capstone-Phase-3.git && cd ML-Capstone-Phase-3

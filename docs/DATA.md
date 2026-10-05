@@ -43,7 +43,7 @@ The audit checks formats, colour modes, resolution spread, exact duplicates (MD5
 | I1 | Mixed resolutions and aspect ratios | Resize to 100×100 (paper); the audit reports how many are non‑square |
 | I2 | Mixed grayscale and RGB files | Convert all to 3‑channel RGB (paper input shape 100×100×3) |
 | I3 | Duplicate or near‑duplicate images (common in merged COVID collections, Roberts et al. 2021) | Measured; any near‑duplicates across the split are reported with the results |
-| I4 | Class imbalance (X‑ray 1.36 : 1, CT 2.07 : 1) | Paper: SMOTE‑ENN on images. Ours: class‑weighted loss inside training, no synthetic images (interpolated pixels are not valid scans and SMOTE before splitting leaks) |
+| I4 | Class imbalance (X‑ray 1.36 : 1, CT 2.07 : 1) | Paper: SMOTE‑ENN on images (`imaging.py --balance paper` reproduces it; `--balance smoteenn` does it inside training only). Default: class‑weighted loss, no synthetic images (interpolated pixels are not valid scans and SMOTE before splitting leaks) |
 | I5 | Shortcut cues (text, borders, source differences) | Lung‑masking and corruption tests in `src/imaging_tests.py` |
 
 ## 3. Preprocessing pipeline and justification

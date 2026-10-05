@@ -298,12 +298,26 @@ def overlay(img, cam, alpha=0.5):
 
 
 # ----------------------------------------------------------------------------- main
-def run(modality, profile, folds, out_prefix):
+def smoteenn_images(X, y, log):
+    """SMOTE-ENN on flattened 100x100x3 images, as in the base paper (Section 2.4). Returns uint8 images."""
+    from imblearn.combine import SMOTEENN
+    Xr, yr = SMOTEENN(random_state=SEED).fit_resample(X.reshape(len(X), -1).astype(np.float32), y)
+    log(f"  SMOTE-ENN: {np.bincount(y).tolist()} -> {np.bincount(yr).tolist()}  (paper X-ray: [5500, 4044] -> [4186, 4960])")
+    return np.clip(np.rint(Xr), 0, 255).astype(np.uint8).reshape(-1, *X.shape[1:]), yr
+
+
+def run(modality, profile, folds, out_prefix, balance="none"):
+    """balance: 'none' = class-weighted loss only (default);
+    'smoteenn' = SMOTE-ENN on each training split only (no leakage);
+    'paper' = SMOTE-ENN on the whole dataset before CV, exactly as published (synthetic images can reach the test fold)."""
     P = PROFILES[profile]
     log = lambda s: print(s, flush=True)
     d = np.load(CACHE / f"{modality}_100.npz")
     X, y, names = d["X"], d["y"], d["names"]
-    log(f"{modality}: {X.shape}, COVID={int(y.sum())}, non-COVID={int((1 - y).sum())} | device {device_name()}")
+    log(f"{modality}: {X.shape}, COVID={int(y.sum())}, non-COVID={int((1 - y).sum())} | device {device_name()} | balance {balance}")
+    if balance == "paper":
+        X, y = smoteenn_images(X, y, log)
+        names = None
     skf = StratifiedKFold(10, shuffle=True, random_state=SEED)
     fold_res = []
     for fold, (tr_all, te) in enumerate(skf.split(X, y)):
@@ -311,8 +325,11 @@ def run(modality, profile, folds, out_prefix):
             break
         seed_everything(SEED + fold)
         tr, va = train_test_split(tr_all, test_size=0.1, stratify=y[tr_all], random_state=SEED)
-        Xtr, Xva, Xte = to_tensor(X[tr]), to_tensor(X[va]), to_tensor(X[te])
-        ytr, yva, yte = y[tr], y[va], y[te]
+        Xtr_np, ytr = X[tr], y[tr]
+        if balance == "smoteenn":
+            Xtr_np, ytr = smoteenn_images(Xtr_np, ytr, log)
+        Xtr, Xva, Xte = to_tensor(Xtr_np), to_tensor(X[va]), to_tensor(X[te])
+        yva, yte = y[va], y[te]
         R = dict(fold=fold, n_train=len(tr), n_val=len(va), n_test=len(te), models={})
 
         log(f"[fold {fold}] paper CNN")
@@ -364,7 +381,7 @@ def run(modality, profile, folds, out_prefix):
             log(f"  {k:30s} acc {v['accuracy']:.2f} sens {v['sensitivity']:.2f} spec {v['specificity']:.2f} auc {v['auc']:.4f} ece {v['ece']:.4f}")
         fold_res.append(R)
 
-        if fold == 0:
+        if fold == 0 and balance == "none":  # gallery and saved models come from the default run only
             gallery(modality, X, y, names, te, Xte, yte, paper, plus, p_paper, p_plus, p_final)
             (RESULTS / "models").mkdir(exist_ok=True)
             torch.save(paper.cpu().state_dict(), RESULTS / "models" / f"{modality}_paper_cnn.pt")
@@ -384,7 +401,8 @@ def run(modality, profile, folds, out_prefix):
     out = dict(modality=modality, profile=profile, folds=len(fold_res), device=device_name(), n=int(len(y)),
                covid=int(y.sum()), non_covid=int((1 - y).sum()), paper_params=fold_res[0]["paper_params"],
                plus_params=fold_res[0]["plus_params"], models=agg, history=fold_res[0]["history"],
-               ensemble=fold_res[0]["ensemble"], calibration=fold_res[0]["calibration"], gallery="gallery_%s.json" % modality)
+               ensemble=fold_res[0]["ensemble"], calibration=fold_res[0]["calibration"], gallery="gallery_%s.json" % modality,
+               balance=balance)
     (RESULTS / f"{out_prefix}.json").write_text(json.dumps(out))
     log(f"saved results/{out_prefix}.json")
 
@@ -423,6 +441,9 @@ if __name__ == "__main__":
     ap.add_argument("--folds", type=int, default=None, help="number of the 10 CV folds to run (default: profile)")
     ap.add_argument("--epochs-paper", type=int, default=None)
     ap.add_argument("--epochs-plus", type=int, default=None)
+    ap.add_argument("--balance", choices=["none", "smoteenn", "paper"], default="none",
+                    help="none: class-weighted loss (default). smoteenn: SMOTE-ENN on training splits only. "
+                         "paper: SMOTE-ENN on the whole dataset before CV, as published. Non-default runs save to imaging_<mod>_<balance>.json")
     a = ap.parse_args()
     ensure_dirs()
     if a.epochs_paper:
@@ -430,4 +451,5 @@ if __name__ == "__main__":
     if a.epochs_plus:
         PROFILES[a.profile]["plus_epochs"] = a.epochs_plus
     mod = "x-ray" if a.modality in ("xray", "x-ray") else "ct"
-    run(mod, a.profile, a.folds or PROFILES[a.profile]["folds"], f"imaging_{'xray' if mod == 'x-ray' else 'ct'}")
+    prefix = f"imaging_{'xray' if mod == 'x-ray' else 'ct'}" + ("" if a.balance == "none" else f"_{a.balance}")
+    run(mod, a.profile, a.folds or PROFILES[a.profile]["folds"], prefix, a.balance)
