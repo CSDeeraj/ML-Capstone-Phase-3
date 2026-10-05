@@ -21,6 +21,16 @@ PAPER = dict(
            "DT": M(91.07, 90.60, 90.60, 91.07, 8.93, 0.002), "SVM": M(90.16, 89.81, 89.81, 90.00, 10.00, 0.102),
            "AB": M(87.98, 87.74, 87.74, 87.66, 12.34, 0.017)},
     params={"Proposed CNN (16-layer)": 74018, "MobileNet": 4.2e6, "DenseNet121": 8e6, "VGG-16": 138e6},
+    # Tables 7 and 8: prior work on the same two datasets, as listed by the paper
+    prior_imaging=[["Ismail et al. 2021", "X-ray 4000", "InceptionV3", "X-ray 96.00%"],
+                   ["El-Shafai et al. 2022", "X-ray 1000, CT 1000", "CNN (SGDM)", "X-ray 91.67%, CT 100%"],
+                   ["Mohbey et al. 2022", "CT 5000", "VGG", "CT 95.00%"],
+                   ["Ravi et al. 2022", "X-ray 9544, CT 8055", "EfficientNet + stacking", "X-ray 99%, CT 99%"],
+                   ["Hayat et al. 2023", "X-ray 9544, CT 8055", "SCovNet", "97.62%"],
+                   ["Tungal et al. 2026 (base)", "X-ray 9544, CT 8055", "16-layer CNN, 74k params", "X-ray 99.02%, CT 98.49%"]],
+    prior_blood=[["Famiglini et al. 2021", "feature selection, SMOTE, SMBO-tuned", "Ensemble", "AUC 0.88"],
+                 ["Şiddeti et al. 2023", "kNN imputation, min-max, SMOTE", "AdaBoost", "Acc 89.54%"],
+                 ["Tungal et al. 2026 (base)", "RFE-15, standardise, SMOTE-ENN on all rows, row-wise 10-fold", "Extra Trees", "Acc 98.00%"]],
 )
 
 
@@ -32,7 +42,9 @@ def read(name):
 def main():
     ensure_dirs()
     data = dict(paper=PAPER, imaging=dict(xray=read("imaging_xray.json"), ct=read("imaging_ct.json")), blood=read("blood.json"),
-                gallery=dict(xray=read("gallery_x-ray.json"), ct=read("gallery_ct.json")))
+                gallery=dict(xray=read("gallery_x-ray.json"), ct=read("gallery_ct.json")),
+                audit=read("data_audit.json"), tests=read("test_cases.json"),
+                imaging_tests=dict(xray=read("imaging_tests_xray.json"), ct=read("imaging_tests_ct.json")))
     (SITE / "data" / "results.js").write_text("window.RESULTS=" + json.dumps(data, separators=(",", ":")) + ";")
     d = load()
     y = d["Severity"].values.astype(int)

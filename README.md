@@ -8,6 +8,13 @@ Reproduction and extension of **Tungal et al., “Artificial Intelligence Integr
 
 Status, results and next steps: see [HANDOFF.md](HANDOFF.md).
 
+## Evaluation documents (Phase 3 rubric)
+* [docs/LITERATURE.md](docs/LITERATURE.md) — problem, literature survey, nine research gaps, future directions
+* [docs/DATA.md](docs/DATA.md) — data sources, every inconsistency found and how it is handled, feature justification
+* [docs/PRESENTATION.md](docs/PRESENTATION.md) — timed talk script, demo plan, viva question bank
+* [docs/RUBRIC.md](docs/RUBRIC.md) — where the evidence for each rubric row lives
+* Test cases: `src/test_cases.py` (blood, T1–T9), `src/imaging_tests.py` (corruptions + shortcut tests), `python -m pytest -q` (unit checks)
+
 ## Run on a new PC (Windows / Linux / macOS)
 ```bash
 git clone https://github.com/CSDeeraj/ML-Capstone-Phase-3.git   # keep the path short on Windows
@@ -18,7 +25,7 @@ python src/run_all.py --profile full    # GPU: paper's settings (100 epochs, 10-
 python src/run_all.py --profile quick   # CPU: scaled-down budget
 ```
 `run_all.py` downloads the data (resumable, ~4 GB), caches images, trains X-ray + CT + blood models and refreshes the website data.
-Individual steps: `src/download_data.py`, `src/prepare_images.py`, `src/imaging.py --modality xray|ct`, `src/blood.py`, `src/export_site.py`.
+Individual steps: `src/download_data.py`, `src/prepare_images.py`, `src/data_audit.py`, `src/imaging.py --modality xray|ct`, `src/imaging_tests.py --modality xray|ct`, `src/blood.py`, `src/test_cases.py`, `src/export_site.py` (`--skip-tests` on `run_all.py` skips the test suites).
 A GPU run can be checked first with `python setup_env.py --check`.
 Device is auto-detected (CUDA → Apple MPS → CPU). Data goes to `./data` or `$CAPSTONE_DATA` (git-ignored).
 

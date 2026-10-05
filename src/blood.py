@@ -226,6 +226,7 @@ class Stack:
                 oof[b, j] = build(k, self.prm[k], y[a]).fit(X[a], y[a]).predict_proba(X[b])[:, 1]
         self.meta = LogisticRegression(C=1.0, max_iter=1000).fit(logit(oof), y)
         po = self.meta.predict_proba(logit(oof))[:, 1]
+        self.train_oof = po  # kept so callers can pick other operating points from training data only
         grid = np.linspace(0.2, 0.8, 61)
         self.thr = float(grid[np.argmax([balanced_accuracy_score(y, po >= g) for g in grid])])
         self.base = {k: build(k, self.prm[k], y).fit(X, y) for k in self.prm}
