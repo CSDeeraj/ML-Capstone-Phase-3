@@ -1,0 +1,400 @@
+{
+ "profile": "quick",
+ "trials": 20,
+ "folds": 10,
+ "model": "Stacked ensemble (tuned ERT + LightGBM + XGBoost, logistic meta-learner)",
+ "leakage_mechanism": {
+  "Row-wise CV (paper)": {
+   "nearest_is_same_patient": 38.284424379232505,
+   "one_nn_accuracy": 86.27539503386005
+  },
+  "Patient-grouped CV (ours)": {
+   "nearest_is_same_patient": 0.0,
+   "one_nn_accuracy": 77.60722347629797
+  }
+ },
+ "negative_control": {
+  "auc": 0.4881020743126694
+ },
+ "missing_aware": {
+  "rows": 4995,
+  "rows_missing": 565,
+  "complete_rows": {
+   "n": 4430,
+   "positives": 1088,
+   "auc": 0.8907515093110854,
+   "balanced_accuracy": 78.83708240926532,
+   "sensitivity": 64.70588235294117,
+   "specificity": 92.96828246558947,
+   "ppv": 74.97337593184238,
+   "npv": 89.00028645087367,
+   "accuracy": 86.02708803611738
+  },
+  "missing_rows": {
+   "n": 565,
+   "positives": 271,
+   "auc": 0.8279112382960565,
+   "balanced_accuracy": 75.30373773125487,
+   "sensitivity": 68.63468634686348,
+   "specificity": 81.97278911564626,
+   "ppv": 77.82426778242677,
+   "npv": 73.92638036809817,
+   "accuracy": 75.57522123893806
+  },
+  "all_rows": {
+   "n": 4995,
+   "positives": 1359,
+   "auc": 0.8874164090434061,
+   "balanced_accuracy": 78.78426915539237,
+   "sensitivity": 65.48933038999265,
+   "specificity": 92.07920792079209,
+   "ppv": 75.55178268251274,
+   "npv": 87.7128635053707,
+   "accuracy": 84.84484484484484
+  }
+ },
+ "unseen_patients": {
+  "n": 4430,
+  "positives": 1088,
+  "auc": 0.9007889230647375,
+  "balanced_accuracy": 81.74454139824692,
+  "sensitivity": 81.80147058823529,
+  "specificity": 81.68761220825853,
+  "ppv": 59.254327563249,
+  "npv": 93.23770491803279,
+  "accuracy": 81.7155756207675,
+  "auc_ci": [
+   0.8781116799891693,
+   0.9208670365128814
+  ],
+  "balanced_accuracy_ci": [
+   79.0545147723715,
+   84.25367895845734
+  ]
+ },
+ "subgroups": [
+  {
+   "name": "All rows",
+   "patients": 1136,
+   "n": 4430,
+   "positives": 1088,
+   "auc": 0.9007889230647375,
+   "balanced_accuracy": 81.74454139824692,
+   "sensitivity": 81.80147058823529,
+   "specificity": 81.68761220825853,
+   "ppv": 59.254327563249,
+   "npv": 93.23770491803279,
+   "accuracy": 81.7155756207675,
+   "auc_ci": [
+    0.8781116799891693,
+    0.9208670365128814
+   ],
+   "balanced_accuracy_ci": [
+    79.0545147723715,
+    84.25367895845734
+   ]
+  },
+  {
+   "name": "Sex code 1",
+   "patients": 678,
+   "n": 3108,
+   "positives": 886,
+   "auc": 0.898086648393959,
+   "balanced_accuracy": 81.55755191771999,
+   "sensitivity": 84.53724604966139,
+   "specificity": 78.57785778577858,
+   "ppv": 61.142857142857146,
+   "npv": 92.72437599575146,
+   "accuracy": 80.27670527670527,
+   "auc_ci": [
+    0.8663739300242835,
+    0.9221548652454692
+   ],
+   "balanced_accuracy_ci": [
+    78.46692570254761,
+    84.19109024547944
+   ]
+  },
+  {
+   "name": "Sex code 0",
+   "patients": 458,
+   "n": 1322,
+   "positives": 202,
+   "auc": 0.8897984441301272,
+   "balanced_accuracy": 78.82956152758133,
+   "sensitivity": 69.80198019801979,
+   "specificity": 87.85714285714286,
+   "ppv": 50.90252707581227,
+   "npv": 94.16267942583733,
+   "accuracy": 85.09833585476551,
+   "auc_ci": [
+    0.8185375338473552,
+    0.9384059659630418
+   ],
+   "balanced_accuracy_ci": [
+    67.50755033945558,
+    85.95959653747413
+   ]
+  },
+  {
+   "name": "Age < 50",
+   "patients": 302,
+   "n": 819,
+   "positives": 177,
+   "auc": 0.8792350880898323,
+   "balanced_accuracy": 76.21838534241512,
+   "sensitivity": 71.75141242937853,
+   "specificity": 80.68535825545172,
+   "ppv": 50.59760956175299,
+   "npv": 91.19718309859155,
+   "accuracy": 78.75457875457876,
+   "auc_ci": [
+    0.8178127402419693,
+    0.9273072437700302
+   ],
+   "balanced_accuracy_ci": [
+    69.47623751224472,
+    81.83012378098513
+   ]
+  },
+  {
+   "name": "Age 50-64",
+   "patients": 339,
+   "n": 1548,
+   "positives": 490,
+   "auc": 0.9127772848269742,
+   "balanced_accuracy": 83.71687049110758,
+   "sensitivity": 87.75510204081633,
+   "specificity": 79.67863894139886,
+   "ppv": 66.66666666666667,
+   "npv": 93.35548172757476,
+   "accuracy": 82.23514211886305,
+   "auc_ci": [
+    0.8798447787751406,
+    0.9407516499760021
+   ],
+   "balanced_accuracy_ci": [
+    80.45810826109458,
+    86.79685858086825
+   ]
+  },
+  {
+   "name": "Age 65-79",
+   "patients": 304,
+   "n": 1388,
+   "positives": 358,
+   "auc": 0.8916689266149591,
+   "balanced_accuracy": 80.84341270271736,
+   "sensitivity": 83.24022346368714,
+   "specificity": 78.44660194174757,
+   "ppv": 57.30769230769231,
+   "npv": 93.08755760368663,
+   "accuracy": 79.68299711815563,
+   "auc_ci": [
+    0.8342822939046993,
+    0.9316016533487699
+   ],
+   "balanced_accuracy_ci": [
+    74.5178447471817,
+    85.6224475796555
+   ]
+  },
+  {
+   "name": "Age 80+",
+   "patients": 191,
+   "n": 675,
+   "positives": 63,
+   "auc": 0.8464571013590622,
+   "balanced_accuracy": 73.61111111111111,
+   "sensitivity": 55.55555555555556,
+   "specificity": 91.66666666666666,
+   "ppv": 40.69767441860465,
+   "npv": 95.24617996604414,
+   "accuracy": 88.29629629629629,
+   "auc_ci": [
+    0.5781974543031515,
+    0.9184504628468446
+   ],
+   "balanced_accuracy_ci": [
+    52.90086703986411,
+    87.21756943663907
+   ]
+  },
+  {
+   "name": "First visit (admission)",
+   "patients": 1136,
+   "n": 1136,
+   "positives": 74,
+   "auc": 0.7265104087137987,
+   "balanced_accuracy": 60.23947676490049,
+   "sensitivity": 36.486486486486484,
+   "specificity": 83.9924670433145,
+   "ppv": 13.705583756345177,
+   "npv": 94.99467518636848,
+   "accuracy": 80.89788732394366,
+   "auc_ci": [
+    0.6749569804871582,
+    0.7791904697359652
+   ],
+   "balanced_accuracy_ci": [
+    54.64968810771311,
+    65.8023834805747
+   ]
+  },
+  {
+   "name": "Follow-up visits",
+   "patients": 663,
+   "n": 3294,
+   "positives": 1014,
+   "auc": 0.9093562926052805,
+   "balanced_accuracy": 82.86125817502335,
+   "sensitivity": 85.10848126232742,
+   "specificity": 80.61403508771929,
+   "ppv": 66.13026819923371,
+   "npv": 92.40824534942182,
+   "accuracy": 81.99757134183363,
+   "auc_ci": [
+    0.8868957959712711,
+    0.9314081657680574
+   ],
+   "balanced_accuracy_ci": [
+    80.27359532524763,
+    85.50790398241621
+   ]
+  },
+  {
+   "name": "Patients whose label changes",
+   "patients": 65,
+   "n": 933,
+   "positives": 711,
+   "auc": 0.7844933541136073,
+   "balanced_accuracy": 69.74284410993272,
+   "sensitivity": 82.27848101265823,
+   "specificity": 57.20720720720721,
+   "ppv": 86.02941176470588,
+   "npv": 50.19762845849802,
+   "accuracy": 76.31296891747053,
+   "auc_ci": [
+    0.7089433928191278,
+    0.8465210055909775
+   ],
+   "balanced_accuracy_ci": [
+    64.33214922309514,
+    75.22720691989095
+   ]
+  }
+ ],
+ "operating_points": [
+  {
+   "name": "Default (balanced accuracy)",
+   "threshold_mean": 0.26491196388261856,
+   "n": 4430,
+   "positives": 1088,
+   "auc": 0.9007889230647375,
+   "balanced_accuracy": 81.74454139824692,
+   "sensitivity": 81.80147058823529,
+   "specificity": 81.68761220825853,
+   "ppv": 59.254327563249,
+   "npv": 93.23770491803279,
+   "accuracy": 81.7155756207675
+  },
+  {
+   "name": "Screening (sens >= 90% on training)",
+   "threshold_mean": 0.12804740406320542,
+   "n": 4430,
+   "positives": 1088,
+   "auc": 0.9007889230647375,
+   "balanced_accuracy": 79.08614073995845,
+   "sensitivity": 91.17647058823529,
+   "specificity": 66.99581089168163,
+   "ppv": 47.35083532219571,
+   "npv": 95.88865096359743,
+   "accuracy": 72.93453724604966
+  },
+  {
+   "name": "Confirmatory (spec >= 90% on training)",
+   "threshold_mean": 0.39208126410835215,
+   "n": 4430,
+   "positives": 1088,
+   "auc": 0.9007889230647375,
+   "balanced_accuracy": 81.02495093638892,
+   "sensitivity": 72.70220588235294,
+   "specificity": 89.3476959904249,
+   "ppv": 68.96251089799478,
+   "npv": 90.95339628388669,
+   "accuracy": 85.25959367945823
+  }
+ ],
+ "noise": [
+  {
+   "name": "0% lab noise",
+   "sigma": 0,
+   "n": 4430,
+   "positives": 1088,
+   "auc": 0.9007889230647375,
+   "balanced_accuracy": 81.74454139824692,
+   "sensitivity": 81.80147058823529,
+   "specificity": 81.68761220825853,
+   "ppv": 59.254327563249,
+   "npv": 93.23770491803279,
+   "accuracy": 81.7155756207675
+  },
+  {
+   "name": "5% lab noise",
+   "sigma": 5,
+   "n": 4430,
+   "positives": 1088,
+   "auc": 0.8797696760481571,
+   "balanced_accuracy": 79.87643890590348,
+   "sensitivity": 79.41176470588235,
+   "specificity": 80.3411131059246,
+   "ppv": 56.80473372781065,
+   "npv": 92.29975936748023,
+   "accuracy": 80.11286681715576
+  },
+  {
+   "name": "10% lab noise",
+   "sigma": 10,
+   "n": 4430,
+   "positives": 1088,
+   "auc": 0.8565675933748723,
+   "balanced_accuracy": 77.6920081317985,
+   "sensitivity": 76.83823529411765,
+   "specificity": 78.54578096947935,
+   "ppv": 53.83129426915647,
+   "npv": 91.24087591240875,
+   "accuracy": 78.12641083521444
+  }
+ ],
+ "mortality": {
+  "deaths": 115,
+  "auc_all_rows": 0.8414146808403447,
+  "auc_within_severe": 0.5691585861745386,
+  "flagged_severe": 84.34782608695653
+ },
+ "temporal": {
+  "n": 1024,
+  "positives": 153,
+  "auc": 0.8551961159511643,
+  "balanced_accuracy": 78.79418893466304,
+  "sensitivity": 73.20261437908496,
+  "specificity": 84.3857634902411,
+  "ppv": 45.16129032258065,
+  "npv": 94.71649484536083,
+  "accuracy": 82.71484375,
+  "auc_ci": [
+   0.7325102390889489,
+   0.9258473320636189
+  ],
+  "balanced_accuracy_ci": [
+   65.54869977449407,
+   87.1325748143257
+  ],
+  "train_patients": 795,
+  "test_patients": 341,
+  "train_rows": 3406,
+  "cutoff": "2020-04-06",
+  "train_until": "2020-04-06",
+  "test_until": "2020-05-13"
+ }
+}

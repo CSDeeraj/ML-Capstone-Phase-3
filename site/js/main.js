@@ -244,7 +244,7 @@ function dataCards() {
   $("#data-blood").innerHTML = `<div class="dc"><h3>BIGDATA-COVID19 blood markers <small>San Raffaele Hospital · Zenodo</small></h3>
     <div class="big grad" data-to="4430">0</div><div style="color:var(--muted);font-size:13px">complete records from <b>${R.blood ? R.blood.patients : 1136}</b> patients (4,995 raw, 22 features)</div>
     <div class="bars">${row("Non-severe", 3342, 3342)}${row("Severe", 1088, 3342)}</div>
-    <p style="color:var(--muted);font-size:13px;margin-top:18px">Several rows per patient — the detail that makes <i>how you split</i> matter so much (section 06).</p></div>`;
+    <p style="color:var(--muted);font-size:13px;margin-top:18px">Several rows per patient — the detail that makes <i>how you split</i> matter so much (section 07).</p></div>`;
   watchCounts($("#data-img")); watchCounts($("#data-blood"));
   const bars = $$(".bar i[data-w]");
   const bo = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.style.width = e.target.dataset.w + "%"; bo.unobserve(e.target); } }), { threshold: .5 });
@@ -335,10 +335,12 @@ function imaging() {
 
   // table
   const best1 = best;
-  $("#img-table").innerHTML = `<thead><tr><th>Model</th><th>Accuracy</th><th>Sens.</th><th>Spec.</th><th>Prec.</th><th>FDR</th><th>AUC</th><th>ECE</th><th>ms/img</th></tr></thead><tbody>` +
+  $("#img-table").innerHTML = `<thead><tr><th>Model</th><th>Accuracy</th><th title="(sens + spec) / 2; the paper's sensitivity and specificity columns are both this macro average">Bal. acc. (macro recall)</th><th>Sens.</th><th>Spec.</th><th title="mean of COVID and non-COVID precision, as the paper reports">Prec. (macro)</th><th>FDR (macro)</th><th>AUC</th><th>ECE</th><th>ms/img</th></tr></thead><tbody>` +
     IMG_ORDER.filter(k => M[k]).map(k => { const m = M[k], pk = IMG_PAPER_KEY[k] && P[IMG_PAPER_KEY[k]];
       const pv = key => pk ? `<s>${fx(pk[key])}</s>` : "";
-      return `<tr class="${k === best1 ? "best" : ""}"><td>${IMG_LABEL[k]}</td><td>${fx(m.accuracy)}${r.folds > 1 ? `<em>±${fx(m.accuracy_std)}</em>` : ""}${pv("accuracy")}</td><td>${fx(m.sensitivity)}${pv("sensitivity")}</td><td>${fx(m.specificity)}${pv("specificity")}</td><td>${fx(m.precision)}${pv("precision")}</td><td>${fx(m.fdr)}${pv("fdr")}</td><td>${fx(m.auc, 4)}</td><td>${fx(m.ece, 3)}</td><td>${fx(m.ms, 2)}${pv("ms")}</td></tr>`; }).join("") + "</tbody>";
+      // the paper's sens = spec in every row: a two-class macro average, i.e. balanced accuracy; compare like with like
+      const [[tn, fp], [fn, tp]] = m.cm || [[0, 0], [0, 0]], mprec = m.precision_macro != null ? m.precision_macro : m.cm ? 50 * (tp / Math.max(tp + fp, 1) + tn / Math.max(tn + fn, 1)) : m.precision;
+      return `<tr class="${k === best1 ? "best" : ""}"><td>${IMG_LABEL[k]}</td><td>${fx(m.accuracy)}${r.folds > 1 ? `<em>±${fx(m.accuracy_std)}</em>` : ""}${pv("accuracy")}</td><td>${fx(m.balanced_accuracy != null ? m.balanced_accuracy : (m.sensitivity + m.specificity) / 2)}${pv("sensitivity")}</td><td>${fx(m.sensitivity)}</td><td>${fx(m.specificity)}</td><td>${fx(mprec)}${pv("precision")}</td><td>${fx(100 - mprec)}${pv("fdr")}</td><td>${fx(m.auc, 4)}</td><td>${fx(m.ece, 3)}</td><td>${fx(m.ms, 2)}${pv("ms")}</td></tr>`; }).join("") + "</tbody>";
 }
 
 function curves(key) {
@@ -543,16 +545,130 @@ function triage() {
   new IntersectionObserver((es, o) => { if (es[0].isIntersecting) { run(0); o.disconnect(); } }, { threshold: .3 }).observe($("#triage-board"));
 }
 
+
+/* ------------------------------------------------------------ literature & gaps (rubric: problem + literature) */
+const GAPS = [
+  { g: "Leaky evaluation of the blood model", e: "SMOTE-ENN on all 4,430 rows, then row-wise 10-fold CV, while patients have up to 39 visits each.", a: () => R.blood ? `Paper protocol reproduced (${fx(R.blood.paper_protocol.ERT.accuracy, 1)}%), then patients kept apart: ${fx(R.blood.honest_smoteenn.ERT.accuracy, 1)}%, AUC ${fx(R.blood.honest_smoteenn.ERT.auc, 3)}.` : "Patient-grouped re-evaluation." },
+  { g: "No validation on later or unseen patients", e: "Only internal CV; the paper lists real-hospital validation as future work.", a: () => "Patient-grouped CV (T1) and a temporal hold-out on later admissions (T2)." },
+  { g: "Missing data dropped, and not at random", e: "", a: () => "Missing-aware model scores the dropped rows (T6) instead of discarding them." },
+  { g: "Severity treated as a fixed patient label", e: "", a: () => "Per-visit labels, patient-level splits, admission visit reported on its own (T3)." },
+  { g: "Accuracy at one threshold, uncalibrated", e: "On a 25%-severe task, accuracy hides missed severe cases.", a: () => "AUC, balanced accuracy, MCC, Brier, ECE; temperature scaling; screening vs confirmatory thresholds (T4)." },
+  { g: "Grad-CAM shown on chosen successes only", e: "COVID X-ray models are known to learn shortcuts (DeGrave 2021; Maguolo & Nanni 2021).", a: () => "Grad-CAM++ beside Grad-CAM, a real failure case, lung-masking shortcut test and corruption tests." },
+  { g: "No subgroup analysis", e: "Performance by age or sex is not reported.", a: () => "Subgroup AUC with patient-bootstrap 95% CIs (T3)." },
+  { g: "Compact model, no improvement path", e: "Residual links, attention, augmentation and calibration are cheap but unexplored.", a: () => "CovidNet-Plus: still >10× smaller than MobileNet, better AUC and calibration." },
+  { g: "Unified lab described, not demonstrated", e: "Figure 1 is a diagram.", a: () => "Browser triage simulator runs imaging + blood models on real held-out cases (section 10)." },
+];
+const FUTURE = [
+  "External validation on a second hospital's blood data and a different X-ray source, to measure the drop warned about by Cabitza et al. and Roberts et al.",
+  "True multimodal fusion of image and blood data from the same patients (no public paired dataset exists yet).",
+  "Longitudinal models over a patient's visit sequence to predict deterioration before it happens.",
+  "Lung segmentation before classification, and quantitative XAI metrics instead of picked examples.",
+  "Prospective, workflow-level evaluation of the smart lab with IoT/cloud integration, privacy and security, as the base paper proposes.",
+  "Reuse of the same compact pipeline for other pandemic-prone diseases.",
+];
+function literature() {
+  const P = R.paper || {}, A = (R.audit || {}).blood;
+  const tbl = (rows, head) => `<thead><tr>${head.map(h => `<th>${h}</th>`).join("")}</tr></thead><tbody>` +
+    rows.map(r => `<tr class="${/base/.test(r[0]) ? "best" : ""}">${r.map(c => `<td>${c}</td>`).join("")}</tr>`).join("") + "</tbody>";
+  if (P.prior_imaging) $("#prior-img").innerHTML = tbl(P.prior_imaging, ["Study", "Images", "Model", "Reported"]);
+  if (P.prior_blood) $("#prior-blood").innerHTML = tbl([...P.prior_blood, ...(R.blood ? [["This project (honest)", "paper's recipe, patients kept apart", "Extra Trees / stacked", `Acc ${fx(R.blood.honest_smoteenn.ERT.accuracy, 1)}% · AUC ${fx(R.blood.best.pooled.auc, 3)}`]] : [])], ["Study", "Method", "Model", "Reported"]);
+  if (A) {
+    GAPS[2].e = `${A.rows_with_missing} rows (${fx(100 * A.rows_with_missing / A.rows, 1)}%) dropped; missing in ${fx(100 * A.missing_rate_by_class.severe, 1)}% of severe vs ${fx(100 * A.missing_rate_by_class.non_severe, 1)}% of non-severe rows.`;
+    GAPS[3].e = `${A.label_changes.patients} patients change severity between visits.`;
+  }
+  const T = R.tests;
+  if (T && T.leakage_mechanism) GAPS[0].e += ` A test row's nearest training row is the same patient ${fx(T.leakage_mechanism["Row-wise CV (paper)"].nearest_is_same_patient, 0)}% of the time.`;
+  $("#gap-list").innerHTML = GAPS.map((x, i) => `<div class="glass gap reveal d${i % 3}"><span class="gap-n">G${i + 1}</span><h4>${x.g}</h4><p class="gap-e">${x.e}</p><p class="gap-a"><b>Answer ·</b> ${x.a()}</p></div>`).join("");
+  $("#future").innerHTML = FUTURE.map(f => `<li>${f}</li>`).join("");
+}
+
+/* ------------------------------------------------------------ data audit (rubric: datasets + preprocessing) */
+function audit() {
+  const A = (R.audit || {}).blood; if (!A) return;
+  const pct = (a, b) => fx(100 * a / b, 1) + "%";
+  const rows = [
+    ["Repeated measures", `${A.patients.toLocaleString()} patients, ${fx(A.rows_per_patient.mean, 1)} rows each on average (max ${A.rows_per_patient.max})`, "Split by patient (StratifiedGroupKFold)", "Row-wise splits put one person in train and test"],
+    ["Missing values", `${A.rows_with_missing} rows (${pct(A.rows_with_missing, A.rows)}); ${A.missing_pattern}`, "Dropped as in the paper; also scored by a missing-aware model (T6)", "Keeps the paper comparable and shows what dropping costs"],
+    ["…not at random", `missing in ${fx(100 * A.missing_rate_by_class.severe, 1)}% severe vs ${fx(100 * A.missing_rate_by_class.non_severe, 1)}% non-severe rows`, "Reported; class counts tracked before/after", "Dropping removes the sickest visits"],
+    ["Label changes over time", `${A.label_changes.patients} patients (${A.label_changes.only_worsen} only worsen)`, "Per-visit label, patient-level split", "No leakage between a patient's visits"],
+    ["Class imbalance", `${A.class_after[0]} : ${A.class_after[1]} after cleaning`, "SMOTE-ENN inside training folds, or class weights", "Resampling before splitting leaks"],
+    ["Implausible values", Object.entries(A.implausible).filter(([, v]) => v).map(([k, v]) => `${k} ${v}`).join(", ") + " rows", "Kept and flagged", "Too few to matter; trees are robust to outliers"],
+    ["Differential inconsistencies", `% sum ≠ 100 in ${A.differential_pct_sum.rows_not_100} rows; absolute sum ≠ WBC in ${A.differential_abs_gap.rows_gap_gt_0_5}`, "Kept and flagged", "Analyser rounding, small"],
+    ["Extreme real values", `WBC > 50 in ${A.outliers_extreme.WBC_gt_50} rows`, "Ratios with +0.1 guards, log(SII)", "Real patients; robust features, not deletion"],
+    ["Paediatric rows", `${A.age.under18_rows} rows under 18 (min age ${A.age.min})`, "Kept and flagged", "Too few to model separately"],
+    ["Exact duplicates", `${A.exact_duplicate_rows}`, "–", "–"],
+  ];
+  $("#audit-table").innerHTML = `<thead><tr><th>Issue</th><th>Measured</th><th>Handling</th><th>Why</th></tr></thead><tbody>` + rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join("")}</tr>`).join("") + "</tbody>";
+  chart("ch-miss", { type: "bar", data: { labels: ["Non-severe rows", "Severe rows"], datasets: [{ data: [100 * A.missing_rate_by_class.non_severe, 100 * A.missing_rate_by_class.severe], backgroundColor: [C.cyan, C.pink], borderRadius: 8 }] },
+    options: { maintainAspectRatio: false, scales: { y: { beginAtZero: true, title: { display: true, text: "% rows with a missing value" } } }, plugins: { legend: { display: false } } } });
+  const ab = (R.blood || {}).ablation;
+  if (ab) {
+    chart("ch-feat", { type: "bar", data: { labels: ["Paper 15 markers", "+ NLR, PLR, SII, Mentzer", "+ age, sex"], datasets: [{ label: "AUC", data: ab.map(a => a.auc), backgroundColor: [C.grey, C.lime, C.green], borderRadius: 8 }] },
+      options: { maintainAspectRatio: false, scales: { y: { min: .85, max: .92, title: { display: true, text: "ROC-AUC" } } }, plugins: { legend: { display: false } } } });
+    const r = R.blood.rfe, sh = R.blood.shap;
+    $("#feat-note").innerHTML = `Our own RFE picks <b>${r.overlap_with_paper} of the paper's 15</b> markers. Top SHAP features: ${sh.features.slice(0, 5).join(", ")}; two of the top three are engineered ratios.`;
+  }
+  const IA = (R.audit || {}).imaging || {};
+  const ks = Object.keys(IA);
+  $("#img-audit").innerHTML = `<h3>Image audit <small>formats, resolutions, duplicates, near-duplicates across the split</small></h3>` + (ks.length ?
+    `<div class="table-scroll"><table class="lit"><thead><tr><th>Modality</th><th>Files</th><th>Colour modes</th><th>Width (min–max)</th><th>Non-square</th><th>Exact duplicates</th><th>Across classes</th><th>Test scans with near-duplicate in train</th></tr></thead><tbody>` +
+    ks.map(k => { const v = IA[k], nd = v.near_duplicate_test_in_train; return `<tr><td>${k}</td><td>${v.files}</td><td>${Object.entries(v.modes).map(([m, n]) => m + " " + n).join(", ")}</td><td>${v.width.min}–${v.width.max}</td><td>${v.aspect_not_square}</td><td>${v.exact_duplicates.extra_files}</td><td>${v.exact_duplicates.cross_class}</td><td>${nd ? nd.with_near_duplicate_in_train + " / " + nd.test_images + " (" + fx(100 * nd.share, 1) + "%)" : "–"}</td></tr>`; }).join("") + "</tbody></table></div>"
+    : `<p class="note">Pending: run <code>python src/data_audit.py</code> on the machine that holds the images.</p>`);
+}
+
+/* ------------------------------------------------------------ test cases (rubric: convincing results for various test cases) */
+function testCases() {
+  const T = R.tests;
+  if (!T || !T.unseen_patients) { $("#tc-note").innerHTML = "<b>Pending:</b> run <code>python src/test_cases.py</code> to fill this section."; imagingTests("xray"); return; }
+  const u = T.unseen_patients, t = T.temporal, n10 = T.noise.find(x => x.sigma === 10);
+  const adm = (T.subgroups || []).find(s => /First visit/.test(s.name));
+  $("#tc-note").innerHTML = `Model: <b>${T.model}</b>, ${T.trials} Optuna trials per model, ${T.folds} patient-grouped folds (${T.profile} profile).` +
+    (adm ? ` <b>Weak spot:</b> at the first (admission) visit AUC is ${fx(adm.auc, 3)}, against ${fx(T.unseen_patients.auc, 3)} overall. Severity from a blood count is easier to confirm than to predict at arrival.` : "");
+  const k = (l, v, s) => `<div class="glass kpi reveal"><small>${l}</small><div class="v grad">${v}</div><div class="s">${s}</div></div>`;
+  $("#tc-kpis").innerHTML = k("T1 · Unseen patients", fx(u.auc, 3), `AUC, 95% CI ${fx(u.auc_ci[0], 3)}–${fx(u.auc_ci[1], 3)} · bal. acc. ${fx(u.balanced_accuracy, 1)}%`) +
+    k("T2 · Later patients", fx(t.auc, 3), `AUC on ${t.test_patients} patients first seen from ${t.cutoff}`) +
+    k("T5 · 10% lab noise", fx(n10.auc, 3), `AUC (clean ${fx(T.noise[0].auc, 3)})`) +
+    k("T8 · Shuffled labels", fx(T.negative_control.auc, 3), "AUC ≈ 0.5 proves the pipeline itself does not leak");
+  const L = T.leakage_mechanism, ln = Object.keys(L);
+  chart("ch-tc-leak", { type: "bar", data: { labels: ln, datasets: [{ label: "nearest training row is the same patient (%)", data: ln.map(x => L[x].nearest_is_same_patient), backgroundColor: [C.amber, C.cyan], borderRadius: 8 },
+    { label: "1-NN accuracy (%)", data: ln.map(x => L[x].one_nn_accuracy), backgroundColor: [C.amber + "66", C.cyan + "66"], borderRadius: 8 }] },
+    options: { maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 100 } }, plugins: { legend: { position: "bottom" } } } });
+  const S = T.subgroups;
+  chart("ch-tc-sub", { type: "bar", data: { labels: S.map(s => `${s.name} (${s.patients})`), datasets: [
+    { label: "95% CI", data: S.map(s => s.auc_ci), backgroundColor: C.violet + "55", borderRadius: 4, barPercentage: .5 },
+    { type: "scatter", label: "AUC", data: S.map((s, i) => ({ x: s.auc, y: i })), backgroundColor: C.cyan, pointRadius: 5 }] },
+    options: { indexAxis: "y", maintainAspectRatio: false, scales: { x: { min: .5, max: 1, title: { display: true, text: "ROC-AUC" } }, y: { type: "category" } }, plugins: { legend: { position: "bottom" } } } });
+  chart("ch-tc-noise", { type: "line", data: { labels: T.noise.map(x => x.sigma + "%"), datasets: [{ label: "AUC", data: T.noise.map(x => x.auc), borderColor: C.cyan, tension: .3 }, { label: "bal. acc. / 100", data: T.noise.map(x => x.balanced_accuracy / 100), borderColor: C.pink, tension: .3 }] },
+    options: { maintainAspectRatio: false, scales: { y: { min: .6, max: 1 }, x: { title: { display: true, text: "per-value lab noise (sd)" } } }, plugins: { legend: { position: "bottom" } } } });
+  const M = T.missing_aware;
+  chart("ch-tc-miss", { type: "bar", data: { labels: [`Complete rows (${M.complete_rows.n})`, `Missing differential (${M.missing_rows.n})`], datasets: [{ label: "AUC", data: [M.complete_rows.auc, M.missing_rows.auc], backgroundColor: [C.cyan, C.amber], borderRadius: 8 }] },
+    options: { maintainAspectRatio: false, scales: { y: { min: .5, max: 1, title: { display: true, text: "ROC-AUC (missing-aware model)" } } }, plugins: { legend: { display: false } } } });
+  const D = T.mortality;
+  $("#tc-mort").innerHTML = `<div class="big grad">${fx(D.flagged_severe, 0)}%</div><p>of the <b>${D.deaths}</b> visits from patients who died were flagged severe.</p><p>Severity score separates deaths from survivors with AUC <b>${fx(D.auc_all_rows, 3)}</b>, but only <b>${fx(D.auc_within_severe, 3)}</b> among severe visits, so it does not rank death risk within severe patients. The model was never trained on death.</p>`;
+  $("#tc-ops").innerHTML = `<thead><tr><th>Operating point</th><th>Threshold</th><th>Sensitivity</th><th>Specificity</th><th>PPV</th><th>NPV</th><th>Bal. acc.</th></tr></thead><tbody>` +
+    T.operating_points.map(o => `<tr><td>${o.name}</td><td>${fx(o.threshold_mean, 2)}</td><td>${fx(o.sensitivity, 1)}</td><td>${fx(o.specificity, 1)}</td><td>${fx(o.ppv, 1)}</td><td>${fx(o.npv, 1)}</td><td>${fx(o.balanced_accuracy, 1)}</td></tr>`).join("") + "</tbody>";
+  imagingTests("xray");
+}
+function imagingTests(m) {
+  const I = ((R.imaging_tests || {})[m]);
+  if (!I) { $("#it-body").innerHTML = `<p class="note">Pending: run <code>python src/imaging_tests.py --modality ${m}</code> on the PC with the images, then <code>python src/export_site.py</code>.</p>`; return; }
+  const names = Object.keys(I.cases[0]).filter(k => k !== "name" && k !== "kind");
+  $("#it-body").innerHTML = `<div class="chart-box"><canvas id="ch-it"></canvas></div><p class="note" style="margin-top:12px">Shortcut test: with the lungs blacked out a sound model should fall towards 50%. If accuracy stays high, it is reading something other than the lungs.</p>`;
+  chart("ch-it", { type: "bar", data: { labels: I.cases.map(c => c.name), datasets: names.map((n, i) => ({ label: n, data: I.cases.map(c => c[n].accuracy), backgroundColor: [C.grey, C.cyan][i % 2], borderRadius: 6 })) },
+    options: { maintainAspectRatio: false, scales: { y: { min: 40, max: 100, title: { display: true, text: `accuracy % (${I.test_images} held-out scans)` } } }, plugins: { legend: { position: "bottom" } } } });
+}
+
 /* ------------------------------------------------------------ wiring */
 function wire() {
   $("#img-tabs").onclick = e => { const b = e.target.closest(".tab"); if (!b) return; mod = b.dataset.m; $$("#img-tabs .tab").forEach(t => t.classList.toggle("active", t === b)); imaging(); };
   $("#curve-seg").onclick = e => { const b = e.target.closest("button"); if (!b) return; $$("#curve-seg button").forEach(x => x.classList.toggle("active", x === b)); curves(b.dataset.k); };
   $("#leak-metric").onclick = e => { const b = e.target.closest("button"); if (!b) return; leakKey = b.dataset.k; $$("#leak-metric button").forEach(x => x.classList.toggle("active", x === b)); leakChart(); };
+  $("#it-tabs").onclick = e => { const b = e.target.closest(".tab"); if (!b) return; $$("#it-tabs .tab").forEach(t => t.classList.toggle("active", t === b)); imagingTests(b.dataset.m); };
   $("#up-metric").onclick = e => { const b = e.target.closest("button"); if (!b) return; upKey = b.dataset.k; $$("#up-metric button").forEach(x => x.classList.toggle("active", x === b)); upChart(); };
 }
 
 function init() {
-  buildStatic(); heroStats(); dataCards(); journey(); arch(); imaging(); xai(); blood(); live(); wire();
+  buildStatic(); heroStats(); literature(); dataCards(); audit(); journey(); arch(); imaging(); xai(); blood(); testCases(); live(); wire();
   bgNetwork(); lungs(); tiltInit(); observeReveals(); watchCounts();
 }
 document.readyState === "loading" ? addEventListener("DOMContentLoaded", init) : init();

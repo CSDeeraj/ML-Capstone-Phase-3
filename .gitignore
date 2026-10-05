@@ -6,3 +6,5 @@ __pycache__/
 /data/cache/
 /data/*.zip
 site/data/forest.json
+
+results/test_cases_cache/

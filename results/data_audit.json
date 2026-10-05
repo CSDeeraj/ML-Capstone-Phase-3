@@ -1,0 +1,93 @@
+{
+ "blood": {
+  "rows": 4995,
+  "columns": 27,
+  "patients": 1218,
+  "dates": [
+   "2020-02-16",
+   "2020-05-13"
+  ],
+  "exact_duplicate_rows": 0,
+  "missing_by_column": {
+   "MCV": 18,
+   "NE": 419,
+   "PLT": 18,
+   "RBC": 18,
+   "MPV": 177,
+   "MCH": 18,
+   "MOT": 419,
+   "BAT": 419,
+   "RDW": 23,
+   "NET": 419,
+   "EO": 419,
+   "HGB": 18,
+   "LY": 419,
+   "EOT": 419,
+   "WBC": 18,
+   "BA": 419,
+   "MCHC": 18,
+   "HCT": 18,
+   "LYT": 419,
+   "MO": 419
+  },
+  "rows_with_missing": 565,
+  "missing_rate_by_class": {
+   "non_severe": 0.08085808580858085,
+   "severe": 0.199411331861663
+  },
+  "missing_pattern": "differential count (NE/LY/MO/EO/BA, % and absolute) missing together",
+  "kept_rows": 4430,
+  "kept_patients": 1136,
+  "class_before": [
+   3636,
+   1359
+  ],
+  "class_after": [
+   3342,
+   1088
+  ],
+  "rows_per_patient": {
+   "mean": 4.100985221674877,
+   "median": 2.0,
+   "max": 39,
+   "single_visit": 501
+  },
+  "label_changes": {
+   "patients": 68,
+   "only_worsen": 27,
+   "improve_or_fluctuate": 41
+  },
+  "dead_rows": 155,
+  "dead_all_severe": true,
+  "age": {
+   "min": 1,
+   "median": 63.0,
+   "max": 100,
+   "under18_rows": 9
+  },
+  "sex_rows": {
+   "code_1": 3538,
+   "code_0": 1457
+  },
+  "implausible": {
+   "MCHC": 8,
+   "MCH": 3,
+   "MCV": 2,
+   "HGB": 0,
+   "HCT": 0
+  },
+  "differential_pct_sum": {
+   "rows_not_100": 14,
+   "min": 85.0
+  },
+  "differential_abs_gap": {
+   "rows_gap_gt_0_5": 63,
+   "max": 6.200000000000003
+  },
+  "outliers_extreme": {
+   "WBC_gt_50": 6,
+   "LYT_gt_20": 4
+  }
+ },
+ "imaging": {}
+}
