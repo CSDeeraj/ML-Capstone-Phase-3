@@ -218,7 +218,9 @@ def metrics(y, p, thr=0.5):
     pred = (p >= thr).astype(int)
     tn, fp, fn, tp = confusion_matrix(y, pred, labels=[0, 1]).ravel()
     sens, spec, prec = tp / (tp + fn), tn / (tn + fp), tp / max(tp + fp, 1)
+    prec_macro = (prec + tn / max(tn + fn, 1)) / 2  # the paper's precision/FDR columns are two-class macro averages
     return dict(accuracy=100 * (tp + tn) / len(y), sensitivity=100 * sens, specificity=100 * spec, precision=100 * prec,
+                balanced_accuracy=100 * (sens + spec) / 2, precision_macro=100 * prec_macro,
                 fdr=100 * (1 - prec), f1=100 * 2 * prec * sens / max(prec + sens, 1e-9), mcc=float(matthews_corrcoef(y, pred)),
                 auc=float(roc_auc_score(y, p)), ece=ece(y, p), brier=float(brier_score_loss(y, p)),
                 cm=[[int(tn), int(fp)], [int(fn), int(tp)]])

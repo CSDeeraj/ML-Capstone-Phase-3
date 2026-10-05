@@ -335,10 +335,12 @@ function imaging() {
 
   // table
   const best1 = best;
-  $("#img-table").innerHTML = `<thead><tr><th>Model</th><th>Accuracy</th><th>Sens.</th><th>Spec.</th><th>Prec.</th><th>FDR</th><th>AUC</th><th>ECE</th><th>ms/img</th></tr></thead><tbody>` +
+  $("#img-table").innerHTML = `<thead><tr><th>Model</th><th>Accuracy</th><th title="(sens + spec) / 2; the paper's sensitivity and specificity columns are both this macro average">Bal. acc. (macro recall)</th><th>Sens.</th><th>Spec.</th><th title="mean of COVID and non-COVID precision, as the paper reports">Prec. (macro)</th><th>FDR (macro)</th><th>AUC</th><th>ECE</th><th>ms/img</th></tr></thead><tbody>` +
     IMG_ORDER.filter(k => M[k]).map(k => { const m = M[k], pk = IMG_PAPER_KEY[k] && P[IMG_PAPER_KEY[k]];
       const pv = key => pk ? `<s>${fx(pk[key])}</s>` : "";
-      return `<tr class="${k === best1 ? "best" : ""}"><td>${IMG_LABEL[k]}</td><td>${fx(m.accuracy)}${r.folds > 1 ? `<em>±${fx(m.accuracy_std)}</em>` : ""}${pv("accuracy")}</td><td>${fx(m.sensitivity)}${pv("sensitivity")}</td><td>${fx(m.specificity)}${pv("specificity")}</td><td>${fx(m.precision)}${pv("precision")}</td><td>${fx(m.fdr)}${pv("fdr")}</td><td>${fx(m.auc, 4)}</td><td>${fx(m.ece, 3)}</td><td>${fx(m.ms, 2)}${pv("ms")}</td></tr>`; }).join("") + "</tbody>";
+      // the paper's sens = spec in every row: a two-class macro average, i.e. balanced accuracy; compare like with like
+      const [[tn, fp], [fn, tp]] = m.cm || [[0, 0], [0, 0]], mprec = m.precision_macro != null ? m.precision_macro : m.cm ? 50 * (tp / Math.max(tp + fp, 1) + tn / Math.max(tn + fn, 1)) : m.precision;
+      return `<tr class="${k === best1 ? "best" : ""}"><td>${IMG_LABEL[k]}</td><td>${fx(m.accuracy)}${r.folds > 1 ? `<em>±${fx(m.accuracy_std)}</em>` : ""}${pv("accuracy")}</td><td>${fx(m.balanced_accuracy != null ? m.balanced_accuracy : (m.sensitivity + m.specificity) / 2)}${pv("sensitivity")}</td><td>${fx(m.sensitivity)}</td><td>${fx(m.specificity)}</td><td>${fx(mprec)}${pv("precision")}</td><td>${fx(100 - mprec)}${pv("fdr")}</td><td>${fx(m.auc, 4)}</td><td>${fx(m.ece, 3)}</td><td>${fx(m.ms, 2)}${pv("ms")}</td></tr>`; }).join("") + "</tbody>";
 }
 
 function curves(key) {
