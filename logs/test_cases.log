@@ -5,3 +5,14 @@ T6 missing-aware model
 T1/T3/T4/T5/T7 grouped pass (10 folds, 20 Optuna trials per model)
   fold 1/10  auc 0.900  (688s)
   fold 2/10  auc 0.858  (546s)
+  fold 3/10  auc 0.909  (744s)
+  fold 4/10  auc 0.955  (656s)
+  fold 5/10  auc 0.914  (571s)
+  fold 6/10  auc 0.893  (578s)
+  fold 7/10  auc 0.923  (672s)
+  fold 8/10  auc 0.831  (640s)
+  fold 9/10  auc 0.907  (727s)
+  fold 10/10  auc 0.940  (666s)
+T2 temporal hold-out
+  temporal: train patients first seen <= 2020-04-06, test from 2020-04-06  auc 0.855
+saved results/test_cases.json

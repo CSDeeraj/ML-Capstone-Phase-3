@@ -621,7 +621,9 @@ function testCases() {
   const T = R.tests;
   if (!T || !T.unseen_patients) { $("#tc-note").innerHTML = "<b>Pending:</b> run <code>python src/test_cases.py</code> to fill this section."; imagingTests("xray"); return; }
   const u = T.unseen_patients, t = T.temporal, n10 = T.noise.find(x => x.sigma === 10);
-  $("#tc-note").innerHTML = `Model: <b>${T.model}</b>, ${T.trials} Optuna trials per model, ${T.folds} patient-grouped folds (${T.profile} profile).`;
+  const adm = (T.subgroups || []).find(s => /First visit/.test(s.name));
+  $("#tc-note").innerHTML = `Model: <b>${T.model}</b>, ${T.trials} Optuna trials per model, ${T.folds} patient-grouped folds (${T.profile} profile).` +
+    (adm ? ` <b>Weak spot:</b> at the first (admission) visit AUC is ${fx(adm.auc, 3)}, against ${fx(T.unseen_patients.auc, 3)} overall. Severity from a blood count is easier to confirm than to predict at arrival.` : "");
   const k = (l, v, s) => `<div class="glass kpi reveal"><small>${l}</small><div class="v grad">${v}</div><div class="s">${s}</div></div>`;
   $("#tc-kpis").innerHTML = k("T1 · Unseen patients", fx(u.auc, 3), `AUC, 95% CI ${fx(u.auc_ci[0], 3)}–${fx(u.auc_ci[1], 3)} · bal. acc. ${fx(u.balanced_accuracy, 1)}%`) +
     k("T2 · Later patients", fx(t.auc, 3), `AUC on ${t.test_patients} patients first seen from ${t.cutoff}`) +
@@ -642,7 +644,7 @@ function testCases() {
   chart("ch-tc-miss", { type: "bar", data: { labels: [`Complete rows (${M.complete_rows.n})`, `Missing differential (${M.missing_rows.n})`], datasets: [{ label: "AUC", data: [M.complete_rows.auc, M.missing_rows.auc], backgroundColor: [C.cyan, C.amber], borderRadius: 8 }] },
     options: { maintainAspectRatio: false, scales: { y: { min: .5, max: 1, title: { display: true, text: "ROC-AUC (missing-aware model)" } } }, plugins: { legend: { display: false } } } });
   const D = T.mortality;
-  $("#tc-mort").innerHTML = `<div class="big grad">${fx(D.flagged_severe, 0)}%</div><p>of the <b>${D.deaths}</b> visits from patients who died were flagged severe.</p><p>Severity score separates deaths from survivors with AUC <b>${fx(D.auc_all_rows, 3)}</b>, and still <b>${fx(D.auc_within_severe, 3)}</b> among severe visits only. The model was never trained on death.</p>`;
+  $("#tc-mort").innerHTML = `<div class="big grad">${fx(D.flagged_severe, 0)}%</div><p>of the <b>${D.deaths}</b> visits from patients who died were flagged severe.</p><p>Severity score separates deaths from survivors with AUC <b>${fx(D.auc_all_rows, 3)}</b>, but only <b>${fx(D.auc_within_severe, 3)}</b> among severe visits, so it does not rank death risk within severe patients. The model was never trained on death.</p>`;
   $("#tc-ops").innerHTML = `<thead><tr><th>Operating point</th><th>Threshold</th><th>Sensitivity</th><th>Specificity</th><th>PPV</th><th>NPV</th><th>Bal. acc.</th></tr></thead><tbody>` +
     T.operating_points.map(o => `<tr><td>${o.name}</td><td>${fx(o.threshold_mean, 2)}</td><td>${fx(o.sensitivity, 1)}</td><td>${fx(o.specificity, 1)}</td><td>${fx(o.ppv, 1)}</td><td>${fx(o.npv, 1)}</td><td>${fx(o.balanced_accuracy, 1)}</td></tr>`).join("") + "</tbody>";
   imagingTests("xray");
