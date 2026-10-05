@@ -29,7 +29,7 @@ Reproduction + extension of Tungal et al., *Smart Imaging Lab Framework…*, Hea
 - Docs: `docs/LITERATURE.md`, `docs/DATA.md`, `docs/PRESENTATION.md`, `docs/RUBRIC.md`.
 - To run on the PC with the images, then `python src/export_site.py`:
   `python src/data_audit.py` (image audit), `python src/imaging_tests.py --modality xray` and `--modality ct` (after imaging.py has saved models).
-- Optional paper-identical image balancing: `python src/imaging.py --modality xray --balance paper` (SMOTE-ENN on all images before CV, as published;
+- Optional paper-identical image balancing: `python src/imaging.py --modality xray --balance smoteenn-all` (SMOTE-ENN on all images before CV, as published;
   needs several GB of RAM) and `--balance smoteenn` (training splits only). Results go to `results/imaging_<mod>_<balance>.json`; the default run is untouched.
 
 ## Setup on a new machine (the user will continue on a different PC, possibly with a GPU)

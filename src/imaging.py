@@ -309,13 +309,13 @@ def smoteenn_images(X, y, log):
 def run(modality, profile, folds, out_prefix, balance="none"):
     """balance: 'none' = class-weighted loss only (default);
     'smoteenn' = SMOTE-ENN on each training split only (no leakage);
-    'paper' = SMOTE-ENN on the whole dataset before CV, exactly as published (synthetic images can reach the test fold)."""
+    'smoteenn-all' = SMOTE-ENN on the whole dataset before CV, exactly as published (synthetic images can reach the test fold)."""
     P = PROFILES[profile]
     log = lambda s: print(s, flush=True)
     d = np.load(CACHE / f"{modality}_100.npz")
     X, y, names = d["X"], d["y"], d["names"]
     log(f"{modality}: {X.shape}, COVID={int(y.sum())}, non-COVID={int((1 - y).sum())} | device {device_name()} | balance {balance}")
-    if balance == "paper":
+    if balance == "smoteenn-all":
         X, y = smoteenn_images(X, y, log)
         names = None
     skf = StratifiedKFold(10, shuffle=True, random_state=SEED)
@@ -441,9 +441,9 @@ if __name__ == "__main__":
     ap.add_argument("--folds", type=int, default=None, help="number of the 10 CV folds to run (default: profile)")
     ap.add_argument("--epochs-paper", type=int, default=None)
     ap.add_argument("--epochs-plus", type=int, default=None)
-    ap.add_argument("--balance", choices=["none", "smoteenn", "paper"], default="none",
+    ap.add_argument("--balance", choices=["none", "smoteenn", "smoteenn-all"], default="none",
                     help="none: class-weighted loss (default). smoteenn: SMOTE-ENN on training splits only. "
-                         "paper: SMOTE-ENN on the whole dataset before CV, as published. Non-default runs save to imaging_<mod>_<balance>.json")
+                         "smoteenn-all: SMOTE-ENN on the whole dataset before CV, as published. Non-default runs save to imaging_<mod>_<balance>.json")
     a = ap.parse_args()
     ensure_dirs()
     if a.epochs_paper:

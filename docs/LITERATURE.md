@@ -22,7 +22,7 @@ The base paper's answer is a **Smart Imaging Lab**: RT‑PCR → X‑ray/CT clas
 |---|---|---|
 | Imaging data | Menoufia "Extensive COVID‑19 X‑ray and CT Chest Images" [P‑21]: X‑ray 4044 COVID / 5500 non‑COVID, CT 5427 / 2628 | `src/download_data.py`, `src/prepare_images.py` |
 | Image preprocessing | Resize 100×100, RGB, divide by 255 | `prepare_images.py`, `imaging.prep` |
-| Image balancing | SMOTE‑ENN → X‑ray 4960/4186, CT 5300/4659 | default: class‑weighted loss; paper's method available with `--balance paper` (see §5) |
+| Image balancing | SMOTE‑ENN → X‑ray 4960/4186, CT 5300/4659 | default: class‑weighted loss; paper's method available with `--balance smoteenn-all` (see §5) |
 | Image model | 16 layers: 8 Conv2D(32, 3×3) + 4 MaxPool + Dropout + Flatten + Dense + output; ~74k params; Adam, lr 1e‑4, batch 16, 100 epochs | `imaging.PaperCNN` (74,018 params, checked by `tests/`) |
 | Hybrids | CNN features → HGB, ERT, GB, DT | `imaging.run` |
 | Blood data | BIGDATA‑COVID19, San Raffaele, 4995 records / 1218 patients; 3342 non‑severe, 1088 severe after removing nulls | `data/prognostic_data.csv`, `blood.load` |
@@ -94,7 +94,7 @@ Clinical evidence behind the features: lymphopenia and a high **neutrophil‑to�
 We keep the paper's data, preprocessing, CNN and the seven blood models exactly. Two deliberate differences, both reported side by side with the paper protocol:
 
 1. **Splitting by patient** for the blood data (G1). The paper protocol is still run and shown, so the 98 % figure is reproduced, not discarded.
-2. **No SMOTE‑ENN on images.** Interpolating raw pixels of two X‑rays does not produce a valid X‑ray, and applying it before the split leaks test images into training. Class imbalance (≈1.4:1) is handled with class‑weighted loss inside training only. For a strictly paper‑identical run, `python src/imaging.py --modality xray --balance paper` applies SMOTE‑ENN to the whole image set before CV exactly as published, and `--balance smoteenn` applies it to training splits only; both save to separate result files so all three can be compared.
+2. **No SMOTE‑ENN on images.** Interpolating raw pixels of two X‑rays does not produce a valid X‑ray, and applying it before the split leaks test images into training. Class imbalance (≈1.4:1) is handled with class‑weighted loss inside training only. For a strictly paper‑identical run, `python src/imaging.py --modality xray --balance smoteenn-all` applies SMOTE‑ENN to the whole image set before CV exactly as published, and `--balance smoteenn` applies it to training splits only; both save to separate result files so all three can be compared.
 
 ## 6. Future research directions
 
