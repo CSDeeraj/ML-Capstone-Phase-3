@@ -82,7 +82,16 @@ def grouped_pass(d, y, groups, trials, folds, log):
     n = len(y)
     out = {k: np.zeros(n) for k in ("p", "p5", "p10", "thr", "thr_screen", "thr_confirm")}
     rng = np.random.RandomState(SEED)
+    ck = RESULTS / "test_cases_cache"  # per-fold checkpoints so an interrupted run resumes
+    ck.mkdir(exist_ok=True)
     for i, (tr, te) in enumerate(StratifiedGroupKFold(folds, shuffle=True, random_state=SEED).split(X, y, groups)):
+        f = ck / f"fold{i}_of{folds}_t{trials}.npz"
+        if f.exists():
+            z = np.load(f)
+            for k in out:
+                out[k][te] = z[k]
+            log(f"  fold {i + 1}/{folds}  resumed from checkpoint")
+            continue
         t0 = time.time()
         st = Stack(trials).fit(X[tr], y[tr], groups[tr])
         out["p"][te] = st.predict_proba(X[te])
@@ -91,6 +100,7 @@ def grouped_pass(d, y, groups, trials, folds, log):
         out["thr"][te] = st.thr
         out["thr_screen"][te] = thr_for(st.train_oof, y[tr], 0.90, "sens")
         out["thr_confirm"][te] = thr_for(st.train_oof, y[tr], 0.90, "spec")
+        np.savez(f, **{k: v[te] for k, v in out.items()})
         log(f"  fold {i + 1}/{folds}  auc {roc_auc_score(y[te], out['p'][te]):.3f}  ({time.time() - t0:.0f}s)")
     return out
 

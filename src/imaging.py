@@ -451,5 +451,7 @@ if __name__ == "__main__":
     if a.epochs_plus:
         PROFILES[a.profile]["plus_epochs"] = a.epochs_plus
     mod = "x-ray" if a.modality in ("xray", "x-ray") else "ct"
+    if a.profile == "paper" and a.balance != "none":
+        raise SystemExit("--profile paper already applies SMOTE-ENN to the whole dataset; use --balance none with it")
     prefix = f"imaging_{'xray' if mod == 'x-ray' else 'ct'}" + ("" if a.balance == "none" else f"_{a.balance}")
     run(mod, a.profile, a.folds or PROFILES[a.profile]["folds"], prefix, a.balance)
