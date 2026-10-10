@@ -118,7 +118,7 @@ We keep the paper's data, preprocessing, CNN and the seven blood models exactly.
 * [M6] G. Maguolo, L. Nanni. A critic evaluation of methods for COVID‑19 automatic detection from X‑ray images. *Information Fusion* 76, 1–7, 2021.
 * [M7] L. Wang, Z. Q. Lin, A. Wong. COVID‑Net: a tailored deep convolutional neural network design for detection of COVID‑19 cases from chest X‑ray images. *Scientific Reports* 10, 19549, 2020. doi:10.1038/s41598-020-76550-z ✓
 * [M8] J. R. Zech et al. Variable generalization performance of a deep learning model to detect pneumonia in chest radiographs: a cross‑sectional study. *PLoS Medicine* 15(11), e1002683, 2018. doi:10.1371/journal.pmed.1002683 ✓
-* [M9] D. Brinati, A. Campagner, D. Ferrari, M. Locatelli, G. Banfi, F. Cabitza. Detection of COVID‑19 infection from routine blood exams with machine learning: a feasibility study. *Journal of Medical Systems* 44, 135, 2020.
+* [M9] D. Brinati, A. Campagner, D. Ferrari, M. Locatelli, G. Banfi, F. Cabitza. Detection of COVID‑19 infection from routine blood exams with machine learning: a feasibility study. *Journal of Medical Systems* 44, 135, 2020. doi:10.1007/s10916-020-01597-4 ✓
 * [M10] F. Cabitza, A. Campagner et al. The importance of being external: methodological insights for the external validation of machine learning models in medicine. *Computer Methods and Programs in Biomedicine* 208, 106288, 2021. doi:10.1016/j.cmpb.2021.106288 ✓
 * [M11] D. H. Wolpert. Stacked generalization. *Neural Networks* 5, 241–259, 1992.
 * [M12] C. Guo, G. Pleiss, Y. Sun, K. Q. Weinberger. On calibration of modern neural networks. *ICML* 2017.
@@ -128,12 +128,12 @@ We keep the paper's data, preprocessing, CNN and the seven blood models exactly.
 * [M16] J. Hu, L. Shen, G. Sun. Squeeze‑and‑excitation networks. *CVPR* 2018.
 * [M17] R. R. Selvaraju et al. Grad‑CAM: visual explanations from deep networks via gradient‑based localization. *ICCV* 2017; A. Chattopadhay et al. Grad‑CAM++. *WACV* 2018.
 * [M18] Y. Liu et al. Neutrophil‑to‑lymphocyte ratio as an independent risk factor for mortality in hospitalized patients with COVID‑19. *Journal of Infection* 81(1), e6–e12, 2020.
-* [M19] C. Qin et al. Dysregulation of immune response in patients with COVID‑19 in Wuhan, China. *Clinical Infectious Diseases* 71(15), 762–768, 2020.
+* [M19] C. Qin et al. Dysregulation of immune response in patients with COVID‑19 in Wuhan, China. *Clinical Infectious Diseases* 71(15), 762–768, 2020. doi:10.1093/cid/ciaa248 ✓
 * [M20] A. G. Fois et al. The systemic inflammation index on admission predicts in‑hospital mortality in COVID‑19 patients. *Molecules* 25(23), 5725, 2020. doi:10.3390/molecules25235725 ✓
 * [M21] G. S. Collins, J. B. Reitsma, D. G. Altman, K. G. M. Moons. Transparent reporting of a multivariable prediction model for individual prognosis or diagnosis (TRIPOD). *BMJ* 350, g7594, 2015. doi:10.1136/bmj.g7594 ✓
-* [M22] G. Lippi, M. Plebani. Laboratory abnormalities in patients with COVID‑2019 infection. *Clinical Chemistry and Laboratory Medicine* 58(7), 1131–1134, 2020.
+* [M22] G. Lippi, M. Plebani. Laboratory abnormalities in patients with COVID‑2019 infection. *Clinical Chemistry and Laboratory Medicine* 58(7), 1131–1134, 2020. doi:10.1515/cclm-2020-0198 (DOI and year confirmed; volume and pages not shown by the publisher page)
 * [M23] D. Hendrycks, T. Dietterich. Benchmarking neural network robustness to common corruptions and perturbations. *ICLR* 2019.
 * [M24] W. C. Mentzer. Differentiation of iron deficiency from thalassaemia trait. *Lancet* 1(7808), 882, 1973. doi:10.1016/S0140-6736(73)91446-3 ✓
 * [M25] T. Akiba et al. Optuna: a next‑generation hyperparameter optimization framework. *KDD* 2019; S. M. Lundberg, S.‑I. Lee. A unified approach to interpreting model predictions. *NeurIPS* 2017.
 
-References marked ✓ were checked against Crossref / Europe PMC / the publisher on 2026‑10‑10. The rest (M6, M9, M18, M19, M22, and the standard method papers M11–M17, M23, M25) could not be checked here because the lookup services rate‑limited the cloud session; check their volume and page numbers before final submission. The base paper's own references [P‑n] are copied from the paper.
+References marked ✓ were checked against Crossref / Europe PMC / the publisher on 2026‑10‑10. The rest (M6, M18, M22's volume and pages, and the standard method papers M11–M17, M23, M25) could not be checked here because the lookup services rate‑limited the cloud session; check their volume and page numbers before final submission. The base paper's own references [P‑n] are copied from the paper.
