@@ -110,16 +110,16 @@ We keep the paper's data, preprocessing, CNN and the seven blood models exactly.
 
 ## Methodological references
 
-* [M1] S. Saeb, L. Lonini, A. Jayaraman, D. C. Mohr, K. P. Kording. The need to approximate the use‑case in clinical machine learning. *GigaScience* 6(5), 2017.
-* [M2] S. Kaufman, S. Rosset, C. Perlich, O. Stitelman. Leakage in data mining: formulation, detection, and avoidance. *ACM TKDD* 6(4), 2012.
-* [M3] M. Roberts et al. Common pitfalls and recommendations for using machine learning to detect and prognosticate for COVID‑19 using chest radiographs and CT scans. *Nature Machine Intelligence* 3, 199–217, 2021.
-* [M4] L. Wynants et al. Prediction models for diagnosis and prognosis of covid‑19: systematic review and critical appraisal. *BMJ* 369:m1328, 2020.
-* [M5] A. J. DeGrave, J. D. Janizek, S.‑I. Lee. AI for radiographic COVID‑19 detection selects shortcuts over signal. *Nature Machine Intelligence* 3, 610–619, 2021.
+* [M1] S. Saeb, L. Lonini, A. Jayaraman, D. C. Mohr, K. P. Kording. The need to approximate the use‑case in clinical machine learning. *GigaScience* 6(5), gix019, 2017. doi:10.1093/gigascience/gix019 ✓
+* [M2] S. Kaufman, S. Rosset, C. Perlich, O. Stitelman. Leakage in data mining: formulation, detection, and avoidance. *ACM TKDD* 6(4), 1–21, 2012. doi:10.1145/2382577.2382579 ✓
+* [M3] M. Roberts et al. Common pitfalls and recommendations for using machine learning to detect and prognosticate for COVID‑19 using chest radiographs and CT scans. *Nature Machine Intelligence* 3(3), 199–217, 2021. doi:10.1038/s42256-021-00307-0 ✓
+* [M4] L. Wynants et al. Prediction models for diagnosis and prognosis of covid‑19: systematic review and critical appraisal. *BMJ* 369:m1328, 2020. doi:10.1136/bmj.m1328 ✓
+* [M5] A. J. DeGrave, J. D. Janizek, S.‑I. Lee. AI for radiographic COVID‑19 detection selects shortcuts over signal. *Nature Machine Intelligence* 3(7), 610–619, 2021. doi:10.1038/s42256-021-00338-7 ✓
 * [M6] G. Maguolo, L. Nanni. A critic evaluation of methods for COVID‑19 automatic detection from X‑ray images. *Information Fusion* 76, 1–7, 2021.
-* [M7] L. Wang, Z. Q. Lin, A. Wong. COVID‑Net: a tailored deep convolutional neural network design for detection of COVID‑19 cases from chest X‑ray images. *Scientific Reports* 10, 19549, 2020.
-* [M8] J. R. Zech et al. Variable generalization performance of a deep learning model to detect pneumonia in chest radiographs: a cross‑sectional study. *PLoS Medicine* 15(11), e1002683, 2018.
+* [M7] L. Wang, Z. Q. Lin, A. Wong. COVID‑Net: a tailored deep convolutional neural network design for detection of COVID‑19 cases from chest X‑ray images. *Scientific Reports* 10, 19549, 2020. doi:10.1038/s41598-020-76550-z ✓
+* [M8] J. R. Zech et al. Variable generalization performance of a deep learning model to detect pneumonia in chest radiographs: a cross‑sectional study. *PLoS Medicine* 15(11), e1002683, 2018. doi:10.1371/journal.pmed.1002683 ✓
 * [M9] D. Brinati, A. Campagner, D. Ferrari, M. Locatelli, G. Banfi, F. Cabitza. Detection of COVID‑19 infection from routine blood exams with machine learning: a feasibility study. *Journal of Medical Systems* 44, 135, 2020.
-* [M10] F. Cabitza, A. Campagner et al. The importance of being external: methodological insights for the external validation of machine learning models in medicine. *Computer Methods and Programs in Biomedicine* 208, 106288, 2021.
+* [M10] F. Cabitza, A. Campagner et al. The importance of being external: methodological insights for the external validation of machine learning models in medicine. *Computer Methods and Programs in Biomedicine* 208, 106288, 2021. doi:10.1016/j.cmpb.2021.106288 ✓
 * [M11] D. H. Wolpert. Stacked generalization. *Neural Networks* 5, 241–259, 1992.
 * [M12] C. Guo, G. Pleiss, Y. Sun, K. Q. Weinberger. On calibration of modern neural networks. *ICML* 2017.
 * [M13] N. V. Chawla, K. W. Bowyer, L. O. Hall, W. P. Kegelmeyer. SMOTE: synthetic minority over‑sampling technique. *JAIR* 16, 321–357, 2002.
@@ -129,11 +129,11 @@ We keep the paper's data, preprocessing, CNN and the seven blood models exactly.
 * [M17] R. R. Selvaraju et al. Grad‑CAM: visual explanations from deep networks via gradient‑based localization. *ICCV* 2017; A. Chattopadhay et al. Grad‑CAM++. *WACV* 2018.
 * [M18] Y. Liu et al. Neutrophil‑to‑lymphocyte ratio as an independent risk factor for mortality in hospitalized patients with COVID‑19. *Journal of Infection* 81(1), e6–e12, 2020.
 * [M19] C. Qin et al. Dysregulation of immune response in patients with COVID‑19 in Wuhan, China. *Clinical Infectious Diseases* 71(15), 762–768, 2020.
-* [M20] A. G. Fois et al. The systemic inflammation index on admission predicts in‑hospital mortality in COVID‑19 patients. *Molecules* 25(23), 5725, 2020.
-* [M21] G. S. Collins, J. B. Reitsma, D. G. Altman, K. G. M. Moons. Transparent reporting of a multivariable prediction model for individual prognosis or diagnosis (TRIPOD). *BMJ* 350, g7594, 2015.
+* [M20] A. G. Fois et al. The systemic inflammation index on admission predicts in‑hospital mortality in COVID‑19 patients. *Molecules* 25(23), 5725, 2020. doi:10.3390/molecules25235725 ✓
+* [M21] G. S. Collins, J. B. Reitsma, D. G. Altman, K. G. M. Moons. Transparent reporting of a multivariable prediction model for individual prognosis or diagnosis (TRIPOD). *BMJ* 350, g7594, 2015. doi:10.1136/bmj.g7594 ✓
 * [M22] G. Lippi, M. Plebani. Laboratory abnormalities in patients with COVID‑2019 infection. *Clinical Chemistry and Laboratory Medicine* 58(7), 1131–1134, 2020.
 * [M23] D. Hendrycks, T. Dietterich. Benchmarking neural network robustness to common corruptions and perturbations. *ICLR* 2019.
-* [M24] W. C. Mentzer. Differentiation of iron deficiency from thalassaemia trait. *Lancet* 1(7808), 882, 1973.
+* [M24] W. C. Mentzer. Differentiation of iron deficiency from thalassaemia trait. *Lancet* 1(7808), 882, 1973. doi:10.1016/S0140-6736(73)91446-3 ✓
 * [M25] T. Akiba et al. Optuna: a next‑generation hyperparameter optimization framework. *KDD* 2019; S. M. Lundberg, S.‑I. Lee. A unified approach to interpreting model predictions. *NeurIPS* 2017.
 
-Bibliographic details of [M‑] references were written from memory; check volume and page numbers against the publisher before final submission.
+References marked ✓ were checked against Crossref / Europe PMC / the publisher on 2026‑10‑10. The rest (M6, M9, M18, M19, M22, and the standard method papers M11–M17, M23, M25) could not be checked here because the lookup services rate‑limited the cloud session; check their volume and page numbers before final submission. The base paper's own references [P‑n] are copied from the paper.
