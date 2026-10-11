@@ -3,7 +3,8 @@
     python src/run_all.py --profile quick     # laptop / CPU
     python src/run_all.py --profile full      # GPU: paper protocol (100 epochs, 10-fold CV, lr 1e-4, batch 16)
 
-Steps: download data (skipped if present) -> cache images -> imaging (X-ray, CT) -> blood -> export site data.
+Steps: download data (skipped if present) -> cache images -> data audit -> imaging (X-ray, CT) + robustness tests
+       -> blood -> blood test cases -> export site data.
 """
 import argparse
 import subprocess
@@ -23,14 +24,20 @@ def main():
     ap.add_argument("--profile", default="quick", choices=["quick", "full"])
     ap.add_argument("--skip-download", action="store_true")
     ap.add_argument("--skip-images", action="store_true", help="skip the (slow) imaging models")
+    ap.add_argument("--skip-tests", action="store_true", help="skip the test-case suites (imaging_tests.py, test_cases.py)")
     a = ap.parse_args()
     if not a.skip_download:
         step("download_data.py")
     step("prepare_images.py")
+    step("data_audit.py")
     if not a.skip_images:
         for m in ("xray", "ct"):
             step("imaging.py", "--modality", m, "--profile", a.profile)
+            if not a.skip_tests:
+                step("imaging_tests.py", "--modality", m)
     step("blood.py", "--profile", a.profile)
+    if not a.skip_tests:
+        step("test_cases.py", "--profile", a.profile)
     step("export_site.py")
     print("\nDone. Open site/index.html (or run: python -m http.server --directory site)")
 

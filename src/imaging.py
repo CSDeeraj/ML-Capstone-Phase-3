@@ -14,6 +14,7 @@ Usage:  python imaging.py --modality xray --profile quick
 """
 import argparse
 import json
+import os
 import time
 
 import numpy as np
@@ -218,7 +219,9 @@ def metrics(y, p, thr=0.5):
     pred = (p >= thr).astype(int)
     tn, fp, fn, tp = confusion_matrix(y, pred, labels=[0, 1]).ravel()
     sens, spec, prec = tp / (tp + fn), tn / (tn + fp), tp / max(tp + fp, 1)
+    prec_macro = (prec + tn / max(tn + fn, 1)) / 2  # the paper's precision/FDR columns are two-class macro averages
     return dict(accuracy=100 * (tp + tn) / len(y), sensitivity=100 * sens, specificity=100 * spec, precision=100 * prec,
+                balanced_accuracy=100 * (sens + spec) / 2, precision_macro=100 * prec_macro,
                 fdr=100 * (1 - prec), f1=100 * 2 * prec * sens / max(prec + sens, 1e-9), mcc=float(matthews_corrcoef(y, pred)),
                 auc=float(roc_auc_score(y, p)), ece=ece(y, p), brier=float(brier_score_loss(y, p)),
                 cm=[[int(tn), int(fp)], [int(fn), int(tp)]])
@@ -298,12 +301,26 @@ def overlay(img, cam, alpha=0.5):
 
 
 # ----------------------------------------------------------------------------- main
-def run(modality, profile, folds, out_prefix):
+def smoteenn_images(X, y, log):
+    """SMOTE-ENN on flattened 100x100x3 images, as in the base paper (Section 2.4). Returns uint8 images."""
+    from imblearn.combine import SMOTEENN
+    Xr, yr = SMOTEENN(random_state=SEED).fit_resample(X.reshape(len(X), -1).astype(np.float32), y)
+    log(f"  SMOTE-ENN: {np.bincount(y).tolist()} -> {np.bincount(yr).tolist()}  (paper X-ray: [5500, 4044] -> [4186, 4960])")
+    return np.clip(np.rint(Xr), 0, 255).astype(np.uint8).reshape(-1, *X.shape[1:]), yr
+
+
+def run(modality, profile, folds, out_prefix, balance="none"):
+    """balance: 'none' = class-weighted loss only (default);
+    'smoteenn' = SMOTE-ENN on each training split only (no leakage);
+    'smoteenn-all' = SMOTE-ENN on the whole dataset before CV, exactly as published (synthetic images can reach the test fold)."""
     P = PROFILES[profile]
     log = lambda s: print(s, flush=True)
     d = np.load(CACHE / f"{modality}_100.npz")
     X, y, names = d["X"], d["y"], d["names"]
-    log(f"{modality}: {X.shape}, COVID={int(y.sum())}, non-COVID={int((1 - y).sum())} | device {device_name()}")
+    log(f"{modality}: {X.shape}, COVID={int(y.sum())}, non-COVID={int((1 - y).sum())} | device {device_name()} | balance {balance}")
+    if balance == "smoteenn-all":
+        X, y = smoteenn_images(X, y, log)
+        names = None
     skf = StratifiedKFold(10, shuffle=True, random_state=SEED)
     fold_res = []
     for fold, (tr_all, te) in enumerate(skf.split(X, y)):
@@ -311,8 +328,11 @@ def run(modality, profile, folds, out_prefix):
             break
         seed_everything(SEED + fold)
         tr, va = train_test_split(tr_all, test_size=0.1, stratify=y[tr_all], random_state=SEED)
-        Xtr, Xva, Xte = to_tensor(X[tr]), to_tensor(X[va]), to_tensor(X[te])
-        ytr, yva, yte = y[tr], y[va], y[te]
+        Xtr_np, ytr = X[tr], y[tr]
+        if balance == "smoteenn":
+            Xtr_np, ytr = smoteenn_images(Xtr_np, ytr, log)
+        Xtr, Xva, Xte = to_tensor(Xtr_np), to_tensor(X[va]), to_tensor(X[te])
+        yva, yte = y[va], y[te]
         R = dict(fold=fold, n_train=len(tr), n_val=len(va), n_test=len(te), models={})
 
         log(f"[fold {fold}] paper CNN")
@@ -364,7 +384,7 @@ def run(modality, profile, folds, out_prefix):
             log(f"  {k:30s} acc {v['accuracy']:.2f} sens {v['sensitivity']:.2f} spec {v['specificity']:.2f} auc {v['auc']:.4f} ece {v['ece']:.4f}")
         fold_res.append(R)
 
-        if fold == 0:
+        if fold == 0 and balance == "none":  # gallery and saved models come from the default run only
             gallery(modality, X, y, names, te, Xte, yte, paper, plus, p_paper, p_plus, p_final)
             (RESULTS / "models").mkdir(exist_ok=True)
             torch.save(paper.cpu().state_dict(), RESULTS / "models" / f"{modality}_paper_cnn.pt")
@@ -384,9 +404,119 @@ def run(modality, profile, folds, out_prefix):
     out = dict(modality=modality, profile=profile, folds=len(fold_res), device=device_name(), n=int(len(y)),
                covid=int(y.sum()), non_covid=int((1 - y).sum()), paper_params=fold_res[0]["paper_params"],
                plus_params=fold_res[0]["plus_params"], models=agg, history=fold_res[0]["history"],
-               ensemble=fold_res[0]["ensemble"], calibration=fold_res[0]["calibration"], gallery="gallery_%s.json" % modality)
+               ensemble=fold_res[0]["ensemble"], calibration=fold_res[0]["calibration"], gallery="gallery_%s.json" % modality,
+               balance=balance)
     (RESULTS / f"{out_prefix}.json").write_text(json.dumps(out))
     log(f"saved results/{out_prefix}.json")
+
+
+def atomic(path, save):
+    """Write via a temp file + rename so a crash never leaves a half-written file."""
+    tmp = path.with_name(path.stem + ".tmp" + path.suffix)
+    save(tmp)
+    os.replace(tmp, path)
+
+
+def train_paper(model, Xtr, ytr, epochs, lr, batch, log, ckpt=None, every=10):
+    """Paper protocol: plain Adam, constant lr, unweighted cross-entropy, fp32, fixed epochs, no validation.
+    With `ckpt`, state is saved every `every` epochs and a re-run resumes from it."""
+    model.to(DEV)
+    opt = torch.optim.Adam(model.parameters(), lr=lr)
+    ytr_t, n = torch.from_numpy(ytr).long(), len(ytr)
+    steps = int(np.ceil(n / batch))
+    hist, start = [], 0
+    if ckpt and ckpt.exists():
+        c = torch.load(ckpt, map_location=DEV, weights_only=False)
+        model.load_state_dict(c["model"]); opt.load_state_dict(c["opt"]); torch.set_rng_state(c["rng"].cpu())
+        hist, start = c["hist"], c["epoch"]
+        log(f"  resumed from checkpoint at epoch {start}")
+    for ep in range(start, epochs):
+        model.train()
+        t0, perm, tl, tc = time.time(), torch.randperm(n), 0.0, 0
+        for i in range(steps):
+            idx = perm[i * batch:(i + 1) * batch]
+            x, y = prep(Xtr[idx]), ytr_t[idx].to(DEV)
+            lg = model(x)
+            loss = F.cross_entropy(lg, y)
+            opt.zero_grad(set_to_none=True)
+            loss.backward()
+            opt.step()
+            tl += loss.item() * len(idx)
+            tc += (lg.argmax(1) == y).sum().item()
+        hist.append(dict(epoch=ep + 1, loss=tl / n, acc=tc / n))
+        log(f"  ep {ep + 1:3d}/{epochs} loss {tl / n:.4f} acc {tc / n:.4f} | {time.time() - t0:.0f}s")
+        if ckpt and ((ep + 1) % every == 0) and ep + 1 < epochs:
+            state = dict(model=model.state_dict(), opt=opt.state_dict(), rng=torch.get_rng_state(), hist=hist, epoch=ep + 1)
+            atomic(ckpt, lambda f: torch.save(state, f))
+    return hist
+
+
+def run_paper(modality, folds, out_prefix, subset=None):
+    """Exact published protocol: SMOTE-ENN on the flattened 100x100x3 images (whole dataset, before CV),
+    stratified 10-fold with plain 90/10 train/test, Paper CNN for a fixed number of epochs, fp32."""
+    from imblearn.combine import SMOTEENN
+    P = PROFILES["paper"]
+    log = lambda s: print(s, flush=True)
+    d = np.load(CACHE / f"{modality}_100.npz")
+    X, y = d["X"], d["y"]
+    if subset:
+        keep = train_test_split(np.arange(len(y)), train_size=subset, stratify=y, random_state=SEED)[0]
+        X, y = X[keep], y[keep]
+    before = dict(covid=int(y.sum()), non_covid=int((1 - y).sum()))
+    log(f"{modality}: {X.shape}, COVID={before['covid']}, non-COVID={before['non_covid']} | device {device_name()}")
+    t = time.time()
+    shape = X.shape[1:]
+    tag = f"{modality}_paper_e{P['paper_epochs']}" + (f"_sub{subset}" if subset else "")
+    sm_cache = CACHE / (f"{modality}_100_smoteenn" + (f"_sub{subset}" if subset else "") + ".npz")
+    if sm_cache.exists():  # SMOTE-ENN is deterministic (fixed seed); cached so a resumed run skips it
+        d = np.load(sm_cache)
+        X, y = d["X"], d["y"]
+    else:
+        Xb, y = SMOTEENN(random_state=SEED).fit_resample(X.reshape(len(X), -1).astype(np.float32), y)
+        X = np.clip(np.rint(Xb), 0, 255).astype(np.uint8).reshape(-1, *shape)
+        del Xb
+        atomic(sm_cache, lambda f: np.savez(f, X=X, y=y))
+    after = dict(covid=int(y.sum()), non_covid=int((1 - y).sum()))
+    log(f"SMOTE-ENN {before} -> {after} ({time.time() - t:.0f}s)")
+    fold_dir = RESULTS / "folds" / tag  # one JSON per finished fold: a crash loses at most the current fold
+    fold_dir.mkdir(parents=True, exist_ok=True)
+    skf = StratifiedKFold(10, shuffle=True, random_state=SEED)
+    fold_res = []
+    for fold, (tr, te) in enumerate(skf.split(X, y)):
+        if fold >= folds:
+            break
+        fj = fold_dir / f"fold_{fold}.json"
+        if fj.exists():
+            fold_res.append(json.loads(fj.read_text()))
+            log(f"[fold {fold}] already done - acc {fold_res[-1]['m']['accuracy']:.2f} (loaded {fj.name})")
+            continue
+        seed_everything(SEED + fold)
+        Xtr, Xte, ytr, yte = to_tensor(X[tr]), to_tensor(X[te]), y[tr], y[te]
+        log(f"[fold {fold}] paper CNN  train {len(tr)} / test {len(te)}")
+        paper = PaperCNN()
+        t = time.time()
+        ck = fold_dir / f"fold_{fold}.ckpt.pt"
+        hist = train_paper(paper, Xtr, ytr, P["paper_epochs"], P["paper_lr"], P["paper_batch"], log, ckpt=ck)
+        p = probs(paper, Xte)
+        m = metrics(yte, p) | dict(ms=ms_per_image(paper, Xte), roc=roc_pts(yte, p))
+        log(f"  Paper CNN acc {m['accuracy']:.2f} sens {m['sensitivity']:.2f} spec {m['specificity']:.2f} "
+            f"prec {m['precision']:.2f} fdr {m['fdr']:.2f} ms {m['ms']:.2f} | fold {time.time() - t:.0f}s")
+        fold_res.append(dict(fold=fold, n_train=len(tr), n_test=len(te), params=n_params(paper), m=m, history=hist))
+        atomic(fj, lambda f: f.write_text(json.dumps(fold_res[-1])))
+        ck.unlink(missing_ok=True)
+    agg = {}
+    for key in fold_res[0]["m"]:
+        if key in ("cm", "roc"):
+            agg[key] = fold_res[0]["m"][key]
+        else:
+            vals = [f["m"][key] for f in fold_res]
+            agg[key], agg[key + "_std"] = float(np.mean(vals)), float(np.std(vals))
+    out = dict(modality=modality, profile="paper", folds=len(fold_res), epochs=P["paper_epochs"], device=device_name(),
+               smote_enn=dict(before=before, after=after), paper_params=fold_res[0]["params"], models={"Paper CNN": agg},
+               per_fold=[dict(fold=f["fold"], **{k: v for k, v in f["m"].items() if k not in ("cm", "roc")}) for f in fold_res],
+               history=fold_res[0]["history"])
+    atomic(RESULTS / f"{out_prefix}.json", lambda f: f.write_text(json.dumps(out)))
+    log(f"saved results/{out_prefix}.json  mean acc {agg['accuracy']:.2f} +- {agg['accuracy_std']:.2f}")
 
 
 def gallery(modality, X, y, names, te, Xte, yte, paper, plus, p_paper, p_plus, p_final, per_class=3):
@@ -423,6 +553,10 @@ if __name__ == "__main__":
     ap.add_argument("--folds", type=int, default=None, help="number of the 10 CV folds to run (default: profile)")
     ap.add_argument("--epochs-paper", type=int, default=None)
     ap.add_argument("--epochs-plus", type=int, default=None)
+    ap.add_argument("--balance", choices=["none", "smoteenn", "smoteenn-all"], default="none",
+                    help="none: class-weighted loss (default). smoteenn: SMOTE-ENN on training splits only. "
+                         "smoteenn-all: SMOTE-ENN on the whole dataset before CV, as published. Non-default runs save to imaging_<mod>_<balance>.json")
+    ap.add_argument("--subset", type=int, default=None, help="paper profile: use a stratified subset (smoke tests)")
     a = ap.parse_args()
     ensure_dirs()
     if a.epochs_paper:
@@ -430,4 +564,11 @@ if __name__ == "__main__":
     if a.epochs_plus:
         PROFILES[a.profile]["plus_epochs"] = a.epochs_plus
     mod = "x-ray" if a.modality in ("xray", "x-ray") else "ct"
+    if a.profile == "paper" and a.balance != "none":
+        raise SystemExit("--profile paper already applies SMOTE-ENN to the whole dataset; use --balance none with it")
+    prefix = f"imaging_{'xray' if mod == 'x-ray' else 'ct'}" + ("" if a.balance == "none" else f"_{a.balance}")
+    run(mod, a.profile, a.folds or PROFILES[a.profile]["folds"], prefix, a.balance)
+    if a.profile == "paper":  # separate results file so it never overwrites the full-profile results
+        run_paper(mod, a.folds or PROFILES["paper"]["folds"], f"imaging_{'xray' if mod == 'x-ray' else 'ct'}_paper", a.subset)
+        raise SystemExit
     run(mod, a.profile, a.folds or PROFILES[a.profile]["folds"], f"imaging_{'xray' if mod == 'x-ray' else 'ct'}")

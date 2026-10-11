@@ -3,8 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Smart Imaging Lab — AI for Pandemic-Prone Diseases</title>
-<meta name="description" content="Reproduction and extension of the Smart Imaging Lab framework: CNN-based COVID-19 detection from X-ray and CT, and blood-test severity prediction, with honest validation, explainability and a live in-browser predictor.">
+<title>Lumen Smart Lab</title>
+<meta name="author" content="C S Deeraj (CH.SC.U4CSE24106)">
+<meta name="description" content="Lumen, by C S Deeraj: reproduction and extension of the Smart Imaging Lab framework: CNN-based COVID-19 detection from X-ray and CT, and blood-test severity prediction, with honest validation, explainability and a live in-browser predictor.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
@@ -16,13 +17,16 @@
 <canvas id="bg-canvas" aria-hidden="true"></canvas>
 
 <header id="nav">
-  <a class="brand" href="#top"><span class="brand-dot"></span>SMART<b>LAB</b></a>
+  <a class="brand" href="#top"><span class="brand-dot"></span><span>LU<b>MEN</b></span></a>
   <nav>
     <a href="#paper">Paper</a>
-    <a href="#pipeline">Pipeline</a>
+    <a href="#gaps">Gaps</a>
+    <a href="#data">Data</a>
     <a href="#imaging">Imaging</a>
     <a href="#xai">Explainability</a>
     <a href="#blood">Blood</a>
+    <a href="#tests">Test cases</a>
+    <a href="#numbers">Numbers</a>
     <a href="#live">Live demo</a>
     <a href="#upgrades">Upgrades</a>
   </nav>
@@ -32,15 +36,24 @@
 <!-- ============================ HERO ============================ -->
 <section class="hero">
   <canvas id="lung-canvas" aria-hidden="true"></canvas>
+  <div class="scanbeam" aria-hidden="true"></div>
   <div class="hero-copy">
-    <span class="eyebrow reveal">Health Science Reports · 2026 · reproduction &amp; extension</span>
-    <h1 class="reveal d1">One lab.<br><span class="grad">Three diagnostics.</span><br>Zero blind spots.</h1>
-    <p class="lead reveal d2">A unified AI framework that reads chest <b>X-rays</b> and <b>CT scans</b> for COVID-19 and triages severity from a routine <b>blood count</b> — rebuilt from the paper, stress-tested for leakage, then pushed further with residual-attention networks, Optuna-tuned stacking and calibrated, explainable predictions.</p>
-    <div class="cta reveal d3">
-      <a class="btn primary" href="#live">Try the live predictor</a>
-      <a class="btn ghost" href="#paper">See what the paper claims</a>
+    <span class="eyebrow">23CSE301 · Machine Learning Capstone · Phase 3</span>
+    <h1 class="title" aria-label="Lumen"><span class="title-word" aria-hidden="true"><i style="--k:0">L</i><i style="--k:1">U</i><i style="--k:2">M</i><i style="--k:3">E</i><i style="--k:4">N</i></span></h1>
+    <p class="title-sub">An AI smart medical imaging lab for pandemic-prone diseases</p>
+    <p class="console" aria-label="Reads chest X-rays, CT scans and blood counts"><span class="prompt">&gt;</span> reading <span class="typer" id="typer">chest X-rays</span><span class="caret"></span></p>
+    <p class="tagline">One lab. <span class="grad">Three diagnostics.</span> Zero blind spots.</p>
+    <p class="lead">A unified AI framework that reads chest <b>X-rays</b> and <b>CT scans</b> for COVID-19 and triages severity from a routine <b>blood count</b>. It is rebuilt from the base paper, stress-tested for leakage, then pushed further with residual-attention networks, Optuna-tuned stacking and calibrated, explainable predictions.</p>
+    <div class="presenter">
+      <div class="p-mono" aria-hidden="true"><span>CSD</span></div>
+      <div class="p-text"><small>Presented by</small><b>C S Deeraj</b><span class="p-roll">CH.SC.U4CSE24106</span></div>
+      <div class="p-paper"><small>Base paper</small><span>Tungal et al., <i>Health Science Reports</i> 2026</span></div>
     </div>
-    <div class="stat-strip reveal d4" id="hero-stats"></div>
+    <div class="cta">
+      <a class="btn primary" href="#live">Try the live predictor</a>
+      <a class="btn ghost" href="#numbers">Why these numbers</a>
+    </div>
+    <div class="stat-strip" id="hero-stats"></div>
   </div>
   <a class="scroll-cue" href="#paper" aria-label="Scroll"><span></span></a>
 </section>
@@ -55,16 +68,33 @@
   <div class="cards3" id="novelty"></div>
 </section>
 
+
+<!-- ============================ LITERATURE & GAPS ============================ -->
+<section id="gaps" class="sec">
+  <div class="sec-head reveal">
+    <span class="kicker">02 · Literature &amp; gaps</span>
+    <h2>What earlier work did, and <span class="grad">what it left open</span></h2>
+    <p>The same two datasets have been studied before. Two earlier blood studies reached AUC 0.88 and 89.5% accuracy; the base paper reports 98%. Explaining that jump is where this project starts.</p>
+  </div>
+  <div class="grid2">
+    <div class="glass table-card reveal"><h3>Imaging · prior work on the Menoufia dataset <small>base paper, Table 7</small></h3><div class="table-scroll"><table id="prior-img" class="lit"></table></div></div>
+    <div class="glass table-card reveal d1"><h3>Blood · prior work on BIGDATA-COVID19 <small>base paper, Table 8</small></h3><div class="table-scroll"><table id="prior-blood" class="lit"></table></div>
+      <p class="note" style="margin-top:16px">Field-wide reviews found almost no COVID-19 imaging model fit for clinical use, mostly because of leakage, duplicates and missing external validation (Roberts et al. 2021; Wynants et al. 2020), and showed X-ray models can learn shortcuts instead of lungs (DeGrave et al. 2021).</p></div>
+  </div>
+  <h3 class="h3big reveal" style="margin:48px 0 18px">Nine research gaps, and how each is answered here</h3>
+  <div class="gaps" id="gap-list"></div>
+  <div class="glass reveal future"><h3>Future research directions</h3><ol id="future"></ol></div>
+</section>
+
 <!-- ============================ PIPELINE ============================ -->
 <section id="pipeline" class="sec">
   <div class="sec-head reveal">
-    <span class="kicker">02 · The framework</span>
+    <span class="kicker">03 · The framework</span>
     <h2>The <span class="grad">Smart Lab</span> patient journey</h2>
     <p>Follow one patient through the lab. Click a stage — or let it play.</p>
   </div>
   <div class="journey reveal">
-    <div class="journey-track"><div class="journey-fill" id="j-fill"></div><div class="journey-dot" id="j-dot"></div></div>
-    <div class="journey-steps" id="j-steps"></div>
+    <div class="journey-steps" id="j-steps"><svg class="j-path" id="j-path" aria-hidden="true"></svg></div>
     <div class="journey-panel glass" id="j-panel"></div>
     <button class="btn ghost small" id="j-toggle">❚❚ Pause</button>
   </div>
@@ -73,20 +103,26 @@
 <!-- ============================ DATA ============================ -->
 <section id="data" class="sec">
   <div class="sec-head reveal">
-    <span class="kicker">03 · The data</span>
+    <span class="kicker">04 · The data</span>
     <h2>Two public datasets, <span class="grad">exactly as in the paper</span></h2>
-    <p>Retrieved from the original sources and verified against the published checksum and image counts.</p>
+    <p>Retrieved from the original sources and verified against the published checksum and image counts. Then audited: what is inconsistent, and what was done about it.</p>
   </div>
   <div class="cards2">
     <div class="glass tilt reveal" id="data-img"></div>
     <div class="glass tilt reveal d1" id="data-blood"></div>
   </div>
+  <div class="glass table-card reveal"><h3>Data audit · every inconsistency found, and what was done about it <small>src/data_audit.py</small></h3><div class="table-scroll"><table id="audit-table" class="lit"></table></div></div>
+  <div class="grid2">
+    <div class="glass chart-card reveal"><h3>Missing values are not random <small>rows with a missing CBC value, by class</small></h3><div class="chart-box short"><canvas id="ch-miss"></canvas></div></div>
+    <div class="glass chart-card reveal d1"><h3>Which features, and why <small>ablation · honest patient-grouped CV</small></h3><div class="chart-box short"><canvas id="ch-feat"></canvas></div><p class="note" id="feat-note" style="margin-top:12px"></p></div>
+  </div>
+  <div class="glass table-card reveal" id="img-audit"></div>
 </section>
 
 <!-- ============================ IMAGING ============================ -->
 <section id="imaging" class="sec">
   <div class="sec-head reveal">
-    <span class="kicker">04 · Imaging models</span>
+    <span class="kicker">05 · Imaging models</span>
     <h2>A 74k-parameter CNN, <span class="grad">then something sharper</span></h2>
     <p>The paper's 16-layer CNN is rebuilt layer-for-layer. Beside it sits <b>CovidNet-Plus</b>: residual blocks, squeeze-excitation attention, augmentation, label smoothing, one-cycle training, test-time augmentation and a calibrated ensemble.</p>
   </div>
@@ -105,13 +141,14 @@
     <div class="glass chart-card reveal d1"><h3>Confusion matrix <small id="cm-name"></small></h3><div id="cm" class="cm"></div></div>
     <div class="glass chart-card reveal d2"><h3>Calibration &amp; size</h3><div id="img-calib"></div></div>
   </div>
-  <div class="glass table-card reveal"><h3>Full metrics <small>ours · paper in grey</small></h3><div class="table-scroll"><table id="img-table"></table></div></div>
+  <div class="glass table-card reveal"><h3>Full metrics <small>ours · paper in grey · the paper's sensitivity = specificity in every row is a two-class macro average, so it sits under balanced accuracy</small></h3><div class="table-scroll"><table id="img-table"></table></div></div>
+  <div class="glass table-card reveal" id="img-paper" hidden></div>
 </section>
 
 <!-- ============================ XAI ============================ -->
 <section id="xai" class="sec">
   <div class="sec-head reveal">
-    <span class="kicker">05 · Explainability</span>
+    <span class="kicker">06 · Explainability</span>
     <h2>Where the network <span class="grad">looks</span></h2>
     <p>Grad-CAM (paper) versus Grad-CAM++ on the improved network. Drag the divider to reveal the heatmap. One failure case is included on purpose — trust is earned by showing mistakes.</p>
   </div>
@@ -133,7 +170,7 @@
 <!-- ============================ BLOOD ============================ -->
 <section id="blood" class="sec">
   <div class="sec-head reveal">
-    <span class="kicker">06 · Severity from blood</span>
+    <span class="kicker">07 · Severity from blood</span>
     <h2>The number that <span class="grad">changed</span> when we looked closer</h2>
     <p>The paper reports 98% accuracy for Extra Trees. We reproduce it — then show it depends on how patients are split.</p>
   </div>
@@ -164,10 +201,46 @@
   <div class="glass table-card reveal"><h3>All models, honest protocol <small>patient-grouped 10-fold · mean ± sd</small></h3><div class="table-scroll"><table id="blood-table"></table></div></div>
 </section>
 
+
+<!-- ============================ TEST CASES ============================ -->
+<section id="tests" class="sec">
+  <div class="sec-head reveal">
+    <span class="kicker">08 · Test cases</span>
+    <h2>Does it hold up <span class="grad">case after case?</span></h2>
+    <p>The proposed severity model (stacked ensemble) is put through nine tests, each on patients it never trained on. Imaging models get corruption and shortcut tests.</p>
+  </div>
+  <p class="note reveal" id="tc-note"></p>
+  <div class="kpis" id="tc-kpis"></div>
+  <div class="grid2">
+    <div class="glass chart-card reveal"><h3>T9 · Why the paper's split leaks <small>test rows whose nearest training row is the same patient</small></h3><div class="chart-box short"><canvas id="ch-tc-leak"></canvas></div></div>
+    <div class="glass chart-card reveal d1"><h3>T3 · Subgroups <small>AUC with 95% CI (patient bootstrap)</small></h3><div class="chart-box"><canvas id="ch-tc-sub"></canvas></div></div>
+  </div>
+  <div class="grid3">
+    <div class="glass chart-card reveal"><h3>T5 · Lab measurement noise</h3><div class="chart-box short"><canvas id="ch-tc-noise"></canvas></div></div>
+    <div class="glass chart-card reveal d1"><h3>T6 · Rows the paper discards</h3><div class="chart-box short"><canvas id="ch-tc-miss"></canvas></div></div>
+    <div class="glass chart-card reveal d2"><h3>T7 · Mortality as an outside check</h3><div id="tc-mort" class="tc-mort"></div></div>
+  </div>
+  <div class="glass table-card reveal"><h3>T4 · Operating points <small>thresholds chosen on training folds only</small></h3><div class="table-scroll"><table id="tc-ops"></table></div></div>
+  <div class="glass table-card reveal"><h3>Imaging · corruption and shortcut tests <small>fold-0 held-out scans · src/imaging_tests.py</small></h3>
+    <div class="tabs" id="it-tabs"><button class="tab active" data-m="xray">Chest X-ray</button><button class="tab" data-m="ct">CT scan</button></div>
+    <div id="it-body"></div></div>
+</section>
+
+<!-- ============================ WHY THESE NUMBERS ============================ -->
+<section id="numbers" class="sec">
+  <div class="sec-head reveal">
+    <span class="kicker">09 · Reading the numbers</span>
+    <h2>Why each result lands <span class="grad">where it does</span></h2>
+    <p>Every headline percentage on this page, set beside the paper's, with what moves it up or down. Dots are the ten cross-validation folds; the diamond is the paper.</p>
+  </div>
+  <div class="why-grid" id="why-grid"></div>
+  <div class="glass why-ladder reveal" id="why-ladder"></div>
+</section>
+
 <!-- ============================ LIVE ============================ -->
 <section id="live" class="sec">
   <div class="sec-head reveal">
-    <span class="kicker">07 · Live demo</span>
+    <span class="kicker">10 · Live demo</span>
     <h2>Run the model <span class="grad">in your browser</span></h2>
     <p>A 120-tree Extra-Trees forest (the ensemble's ERT member) ships as a few hundred kB of JSON and evaluates entirely client-side. No data leaves the page. Research demo — not a medical device.</p>
   </div>
@@ -185,11 +258,19 @@
         <div class="gauge-num"><span id="g-pct">0</span>%</div></div>
       <div class="verdict" id="verdict"></div>
       <div class="why" id="why"></div>
+      <div class="explain" id="explain">
+        <h4>Why <span id="ex-pct">0</span>%?</h4>
+        <div class="votes" id="votes" role="img" aria-label="Severity vote of each of the 120 trees"></div>
+        <p class="ex-line" id="ex-votes"></p>
+        <div class="wf" id="wf"></div>
+        <p class="ex-line" id="ex-real" style="margin-top:12px"></p>
+        <p class="ex-band">The needle is a risk score, not a verdict. Bands: under 30% general ward, 30–55% close monitoring, 55% and above ICU review. In the data, about 1 visit in 4 was severe (<span id="ex-base">24.6</span>%).</p>
+      </div>
     </div>
   </div>
 
   <div class="sec-head reveal triage-head">
-    <span class="kicker">08 · Smart-lab simulator</span>
+    <span class="kicker">11 · Smart-lab simulator</span>
     <h3 class="h3big">Put it all together: <span class="grad">triage a patient</span></h3>
     <p>Pick a case. The simulator runs the imaging model on a real held-out scan, the blood forest on real lab values, and routes the patient.</p>
   </div>
@@ -202,7 +283,7 @@
 <!-- ============================ UPGRADES ============================ -->
 <section id="upgrades" class="sec">
   <div class="sec-head reveal">
-    <span class="kicker">09 · Beyond the paper</span>
+    <span class="kicker">12 · Beyond the paper</span>
     <h2>Every upgrade, <span class="grad">and why it earns its place</span></h2>
     <p>Practical, technical and theoretical reasons behind each addition.</p>
   </div>
@@ -212,7 +293,7 @@
 <!-- ============================ HONESTY ============================ -->
 <section id="honesty" class="sec">
   <div class="sec-head reveal">
-    <span class="kicker">10 · Limits</span>
+    <span class="kicker">13 · Limits</span>
     <h2>What this does <span class="grad">not</span> show</h2>
   </div>
   <div class="cards3" id="limits"></div>
@@ -221,15 +302,20 @@
     <pre><code>pip install -r requirements.txt
 python src/download_data.py                 # both datasets (~4 GB)
 python src/prepare_images.py                # cache 100x100 arrays
-python src/imaging.py --modality xray --profile quick   # or --profile full on a GPU
-python src/imaging.py --modality ct   --profile quick
-python src/blood.py --profile quick
+python src/imaging.py --modality xray --profile paper   # paper-exact: 100 epochs x 10 folds (GPU)
+python src/imaging.py --modality ct   --profile paper
+python src/imaging.py --modality xray --profile quick   # comparison models, one fold
+python src/blood.py --profile full
+python src/data_audit.py                    # data inconsistencies
+python src/test_cases.py                    # blood test cases T1-T9
+python src/imaging_tests.py --modality xray # corruption + shortcut tests
 python src/export_site.py                   # refresh this website's data</code></pre>
   </div>
 </section>
 </main>
 
 <footer>
+  <p class="f-name"><b>Lumen</b> · C S Deeraj · CH.SC.U4CSE24106 · 23CSE301 Machine Learning Capstone, Phase 3</p>
   <p>Built on <i>“Artificial Intelligence Integrated Smart Medical Imaging Lab Framework for Enhanced Diagnosis and Treatment of Pandemic-Prone Diseases”</i>, Tungal et al., Health Science Reports 2026;9:e71972 (CC BY). Datasets: Menoufia University X-ray/CT (Mendeley Data) and BIGDATA-COVID19, San Raffaele Hospital (Zenodo). Research demonstration only — not for clinical use.</p>
 </footer>
 

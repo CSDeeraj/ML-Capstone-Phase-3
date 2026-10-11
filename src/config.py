@@ -28,6 +28,10 @@ PROFILES = {
                   optuna_trials=20, outer_folds=10, patience=12),
     "full": dict(paper_epochs=100, paper_lr=1e-4, paper_batch=16, plus_epochs=80, plus_batch=32, folds=10,
                  optuna_trials=80, outer_folds=10, patience=15),
+    # paper: exact published imaging protocol - SMOTE-ENN on the whole image set before CV, plain 90/10
+    # stratified 10-fold, fixed 100 epochs (no validation split / early stopping), fp32, Paper CNN only
+    "paper": dict(paper_epochs=100, paper_lr=1e-4, paper_batch=16, plus_epochs=0, plus_batch=32, folds=10,
+                  optuna_trials=80, outer_folds=10, patience=None),
 }
 
 
