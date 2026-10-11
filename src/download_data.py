@@ -12,6 +12,7 @@ Set CAPSTONE_DATA to choose where data lives (default: ./data, git-ignored excep
 import argparse
 import hashlib
 import sys
+import time
 import urllib.request
 import zipfile
 
@@ -28,7 +29,10 @@ def fetch(url, dest, expected=None):
     have = dest.stat().st_size if dest.exists() else 0
     if expected and have == expected:
         return
-    req = urllib.request.Request(url, headers={"Range": f"bytes={have}-"} if have else {})
+    headers = {"User-Agent": "Mozilla/5.0 (capstone-data-fetch)"}  # Mendeley returns 403 to the default urllib agent
+    if have:
+        headers["Range"] = f"bytes={have}-"
+    req = urllib.request.Request(url, headers=headers)
     try:
         resp = urllib.request.urlopen(req, timeout=60)
     except urllib.error.HTTPError as e:
@@ -48,6 +52,8 @@ def fetch(url, dest, expected=None):
             if total:
                 print(f"\r  {100 * done / total:5.1f}%  {done / 1e9:.2f} GB", end="", flush=True)
     print()
+    if expected and done < expected:  # stream closed early (e.g. network switch): resume, never checksum a partial file
+        raise IOError(f"connection closed at {done / 1e9:.2f} of {expected / 1e9:.2f} GB")
 
 
 def sha256(path):
@@ -72,12 +78,13 @@ def main():
         print("images already present - done")
         return
     z = DATA / "covid_images.zip"
-    for attempt in range(5):  # resume automatically after network hiccups
+    for attempt in range(50):  # resume automatically after network hiccups
         try:
             fetch(IMG_URL, z, IMG_BYTES)
             break
         except Exception as e:  # noqa: BLE001
-            print(f"\n  interrupted ({e}); retrying ({attempt + 1}/5)")
+            print(f"\n  interrupted ({e}); retrying ({attempt + 1}/50)")
+            time.sleep(10)
     else:
         sys.exit("download failed - run the script again to resume")
     print("verifying checksum ...")

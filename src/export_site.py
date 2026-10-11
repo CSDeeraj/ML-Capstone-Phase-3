@@ -42,6 +42,7 @@ def read(name):
 def main():
     ensure_dirs()
     data = dict(paper=PAPER, imaging=dict(xray=read("imaging_xray.json"), ct=read("imaging_ct.json")), blood=read("blood.json"),
+                imaging_paper=dict(xray=read("imaging_xray_paper.json"), ct=read("imaging_ct_paper.json")),  # --profile paper
                 gallery=dict(xray=read("gallery_x-ray.json"), ct=read("gallery_ct.json")),
                 audit=read("data_audit.json"), tests=read("test_cases.json"),
                 imaging_tests=dict(xray=read("imaging_tests_xray.json"), ct=read("imaging_tests_ct.json")))

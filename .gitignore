@@ -8,3 +8,15 @@ __pycache__/
 site/data/forest.json
 
 results/test_cases_cache/
+# training state / local-only outputs
+results/folds/**/*.ckpt.pt
+results/folds/**/*.bak
+results/*.backup.json
+results/*.done
+results/*.running
+data/wheels/
+logs/*_full.log
+logs/*_paper.log
+logs/pipeline.log
+logs/xray_pipeline.log
+install.cmd
