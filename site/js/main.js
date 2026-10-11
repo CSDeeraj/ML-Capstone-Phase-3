@@ -150,9 +150,12 @@ function lungs() {
 }
 
 /* ------------------------------------------------------------ static content */
+const LUNG = '<path d="M12 3.5v7.5"/><path d="M12 11c-.9 1.1-2.1 1.7-3.3 1.9"/><path d="M12 11c.9 1.1 2.1 1.7 3.3 1.9"/><path d="M8.7 6.3C6.1 7.2 3.8 11.4 3.8 16c0 2.1 1.1 3.3 2.8 3.3 2.1 0 3.4-1.4 3.4-4.1V8.4c0-1.4-.4-2.4-1.3-2.1z"/><path d="M15.3 6.3c2.6.9 4.9 5.1 4.9 9.7 0 2.1-1.1 3.3-2.8 3.3-2.1 0-3.4-1.4-3.4-4.1V8.4c0-1.4.4-2.4 1.3-2.1z"/>';
+const svgIcon = (inner, frame) => `<svg class="ico-svg" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${frame ? '<rect x="1.5" y="1.5" width="21" height="21" rx="3.5" stroke-opacity=".55"/><g transform="translate(3.4 3.2) scale(.72)">' + inner + "</g>" : inner}</svg>`;
+const ICON_LUNGS = svgIcon(LUNG), ICON_XRAY = svgIcon(LUNG, true);
 const NOVELTY = [
   { i: "🧬", t: "One unified smart lab", p: "RT-PCR, X-ray, CT and blood tests under a single AI-assisted workflow, so a patient never needs separate lab visits.", b: ["ok", "Reproduced"] },
-  { i: "🫁", t: "One CNN for two modalities", p: "A single 16-layer CNN (8 conv · 4 pool · dropout · dense) classifies both X-ray and CT, ~74k parameters — 1,800× smaller than VGG-16.", b: ["ok", "Reproduced · 74,018 params"] },
+  { i: ICON_LUNGS, t: "One CNN for two modalities", p: "A single 16-layer CNN (8 conv · 4 pool · dropout · dense) classifies both X-ray and CT, ~74k parameters — 1,800× smaller than VGG-16.", b: ["ok", "Reproduced · 74,018 params"] },
   { i: "🩸", t: "Severity from a routine CBC", p: "RFE selects 15 blood markers; Extra Trees, LightGBM and others split severe from non-severe so the right bed — ICU or ward — is chosen fast.", b: ["warn", "Re-examined"] },
   { i: "🔥", t: "Explainable by design", p: "Grad-CAM heatmaps show the lung regions that drove each decision, building clinician trust and catching shortcut learning.", b: ["up", "Extended · Grad-CAM++"] },
   { i: "⚡", t: "Built for resource-limited labs", p: "~2 ms per image and a tiny memory footprint make real-time use plausible on modest hospital hardware.", b: ["ok", "Reproduced"] },
@@ -161,7 +164,7 @@ const NOVELTY = [
 const STEPS = [
   { i: "🚑", n: "Emergency arrival", t: "Patient presents", p: "Vitals are checked and a suspected COVID-19 patient is registered. The smart lab spins up a single digital case file that every later test writes into." },
   { i: "🧪", n: "RT-PCR", t: "Gold-standard swab", p: "RT-PCR confirms infection but is slow, kit-limited and can return false negatives — which is why the framework never relies on it alone." },
-  { i: "🩻", n: "X-ray + CT", t: "Imaging AI (CNN)", p: "Severe symptoms trigger chest X-ray and CT. A compact CNN labels each scan COVID or Non-COVID in about 2 ms, with Grad-CAM showing where it looked." },
+  { i: ICON_XRAY, n: "X-ray + CT", t: "Imaging AI (CNN)", p: "Severe symptoms trigger chest X-ray and CT. A compact CNN labels each scan COVID or Non-COVID in about 2 ms, with Grad-CAM showing where it looked." },
   { i: "🩸", n: "Blood panel", t: "Complete blood count", p: "Confirmed cases get a CBC. Neutrophils, lymphocytes, haemoglobin, platelets and red-cell indices carry the signal of how sick the patient is." },
   { i: "🧠", n: "Severity AI", t: "Tree-ensemble triage", p: "Extra-Trees / stacked ensembles estimate the probability of severe disease from the blood markers (plus age and sex in our extension)." },
   { i: "🏥", n: "ICU or ward", t: "Right bed, right time", p: "High-risk patients go to intensive care for continuous monitoring; milder cases stay on the general ward — easing load on staff and beds." },
@@ -184,7 +187,7 @@ const UPGRADES = [
 const LIMITS = [
   { t: "Public, retrospective data", p: "Both datasets are public. Images come from collected sources; blood data from one Milan emergency department in spring 2020. Performance on other hospitals, scanners and variants is unknown." },
   { t: "Images may still be optimistic", p: "The image dataset has no patient IDs, so patient-grouped splits are impossible and near-duplicate scans from one patient could straddle train and test. Treat image accuracy as an upper bound." },
-  { t: "Compute-scaled training", p: "On CPU the quick profile trains fewer epochs and one held-out fold instead of the paper's 100 epochs and 10 folds. The ‘full’ profile restores the paper's protocol; numbers shown say which profile produced them." },
+  { t: "Two training budgets", p: "The paper CNN was re-run with the paper's exact protocol (100 epochs, 10 folds) on a 2 GB GeForce 940MX. The comparison models (hybrids, CovidNet-Plus) come from the quick profile on one held-out fold. Every number on this page says which run produced it." },
   { t: "Simulated RT-PCR step", p: "The triage simulator derives an RT-PCR result from the scan's ground-truth label purely to demonstrate routing. It is not a real test." },
   { t: "Not a medical device", p: "Research demonstration only. Nothing here has clinical validation, regulatory clearance or prospective evaluation." },
   { t: "Associations, not causes", p: "SHAP shows what the model uses, not what causes severity. Age and ratios are proxies for physiology." },
@@ -223,15 +226,33 @@ function buildStatic() {
 }
 
 function heroStats() {
-  const x = (R.imaging || {}).xray, c = (R.imaging || {}).ct, b = R.blood;
-  const best = r => r ? Math.max(...Object.values(r.models).map(m => m.accuracy)) : null;
+  const ip = R.imaging_paper || {}, b = R.blood;
+  const acc = m => ip[m] && ip[m].models["Paper CNN"].accuracy;
   const items = [
-    [17599, 0, "scans analysed"], [4430, 0, "blood records"], [74018, 0, "paper CNN parameters"],
-    ...(x ? [[best(x), 2, "best X-ray accuracy %"]] : []), ...(c ? [[best(c), 2, "best CT accuracy %"]] : []),
-    ...(b && b.improved ? [[b.improved["Stacked ensemble"].auc, 3, "honest severity AUC"]] : []),
+    ...(acc("xray") ? [[acc("xray"), 2, "%", "X-ray accuracy", "paper protocol · 10-fold"]] : []),
+    ...(acc("ct") ? [[acc("ct"), 2, "%", "CT accuracy", "paper protocol · 10-fold"]] : []),
+    ...(b ? [[b.paper_protocol.ERT.accuracy, 2, "%", "blood severity (ERT)", "paper protocol"]] : []),
+    ...(b && b.improved ? [[b.improved["Stacked ensemble"].auc, 3, "", "AUC on unseen patients", "stacked ensemble"]] : []),
+    [17599, 0, "", "scans analysed", "X-ray + CT"],
   ];
-  $("#hero-stats").innerHTML = items.map(([v, d, l]) => `<div class="stat"><b data-to="${v}" data-dec="${d}">0</b><span>${l}</span></div>`).join("");
+  $("#hero-stats").innerHTML = items.map(([v, d, suf, l, e]) => `<div class="stat"><b data-to="${v}" data-dec="${d}" data-suf="${suf}">0</b><span>${l}</span><em>${e}</em></div>`).join("");
   watchCounts($("#hero-stats"));
+}
+
+/* rotating "reading ..." line under the title */
+function typer() {
+  const el = $("#typer"); if (!el) return;
+  const words = ["chest X-rays", "CT scans", "blood counts", "Grad-CAM heatmaps", "10-fold results"];
+  if (reduce) return;
+  let w = 0, i = words[0].length, del = true;
+  const tick = () => {
+    const word = words[w];
+    if (del) { i--; if (i <= 0) { del = false; w = (w + 1) % words.length; } }
+    else { i++; if (i >= words[w].length) { del = true; el.textContent = words[w]; return setTimeout(tick, 1900); } }
+    el.textContent = words[w].slice(0, Math.max(0, i)) || "\u200b";
+    setTimeout(tick, del ? 38 : 70);
+  };
+  setTimeout(tick, 2600);
 }
 
 function dataCards() {
@@ -253,20 +274,81 @@ function dataCards() {
 
 /* ------------------------------------------------------------ journey */
 function journey() {
-  const steps = $("#j-steps"), panel = $("#j-panel"), fill = $("#j-fill"), dot = $("#j-dot");
-  steps.innerHTML = STEPS.map((s, i) => `<div class="jstep" data-i="${i}"><div class="node">${s.i}</div><span>${s.n}</span></div>`).join("");
-  let cur = 0, playing = true, timer;
+  const steps = $("#j-steps"), panel = $("#j-panel"), svg = $("#j-path");
+  steps.insertAdjacentHTML("beforeend", STEPS.map((s, i) => `<div class="jstep" data-i="${i}"><div class="node">${s.i}</div><span>${s.n}</span></div>`).join(""));
+  let cur = 0, playing = true, timer, marks = [], headLen = 0, total = 1, raf = 0;
+  const NS = "http://www.w3.org/2000/svg";
+  const mk = (tag, cls) => { const e = document.createElementNS(NS, tag); if (cls) e.setAttribute("class", cls); return e; };
+  const defs = mk("defs"), base = mk("path", "j-base"), flow = mk("path", "j-flow"), prog = mk("path", "j-prog"), head = mk("path", "j-head");
+  defs.innerHTML = `<linearGradient id="jg" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="1000" y2="0"><stop offset="0" stop-color="#22d3ee"/><stop offset=".55" stop-color="#8b5cf6"/><stop offset="1" stop-color="#f472b6"/></linearGradient>`;
+  head.setAttribute("d", "M0 0 L-15 -7.5 L-11 0 L-15 7.5 Z");
+  svg.append(defs, base, flow, prog, head);
+
+  // one continuous path through the stage centres; when the grid wraps, it loops out to the right,
+  // runs back below the labels and enters the next row from the left, so it reads like a snake
+  function layout() {
+    const box = steps.getBoundingClientRect();
+    if (!box.width) return;
+    const N = $$(".jstep", steps).map(st => {
+      const n = $(".node", st), b = n.getBoundingClientRect(), r = n.offsetWidth / 2;
+      return { x: b.left - box.left + b.width / 2, y: b.top - box.top + b.height / 2, r, top: b.top - box.top + b.height / 2 - r, bottom: st.getBoundingClientRect().bottom - box.top };
+    });
+    svg.setAttribute("viewBox", `0 0 ${box.width} ${box.height}`);
+    $("#jg", defs).setAttribute("x2", box.width);
+    let d = `M ${N[0].x} ${N[0].y}`;
+    const parts = [d];
+    for (let k = 1; k < N.length; k++) {
+      const a = N[k - 1], b = N[k];
+      if (Math.abs(a.y - b.y) < 4) d = ` L ${b.x} ${b.y}`;
+      else {
+        const o1 = Math.max(8, Math.min(30, box.width - a.x - a.r - 4)), o2 = Math.max(8, Math.min(30, b.x - b.r - 4));
+        const xr = a.x + a.r + o1, xl = b.x - b.r - o2, gy = (a.bottom + b.top) / 2, R = Math.max(2, Math.min(14, (gy - a.y) / 2, (b.y - gy) / 2));
+        d = ` L ${xr - R} ${a.y} Q ${xr} ${a.y} ${xr} ${a.y + R} L ${xr} ${gy - R} Q ${xr} ${gy} ${xr - R} ${gy} L ${xl + R} ${gy} Q ${xl} ${gy} ${xl} ${gy + R} L ${xl} ${b.y - R} Q ${xl} ${b.y} ${xl + R} ${b.y} L ${b.x} ${b.y}`;
+      }
+      parts.push(d);
+    }
+    const full = parts.join("");
+    [base, flow, prog].forEach(p => p.setAttribute("d", full));
+    total = base.getTotalLength();
+    // arrow tip stops just outside each stage it is heading into
+    marks = N.map((n, k) => {
+      if (!k) return n.r + 18;
+      base.setAttribute("d", parts.slice(0, k + 1).join(""));
+      return base.getTotalLength() - n.r - 8;
+    });
+    base.setAttribute("d", full);
+    prog.style.strokeDasharray = `${total} ${total}`;
+    place(marks[cur]);
+  }
+  function place(L) {
+    headLen = L;
+    const p = base.getPointAtLength(L), q = base.getPointAtLength(Math.max(0, L - 2));
+    head.setAttribute("transform", `translate(${p.x} ${p.y}) rotate(${Math.atan2(p.y - q.y, p.x - q.x) * 180 / Math.PI})`);
+    prog.style.strokeDashoffset = total - L;
+  }
+  function glide(to) {
+    cancelAnimationFrame(raf);
+    if (reduce || !marks.length) return place(to);
+    if (to < headLen) {                       // looping back to the start: fade out, jump, fade in
+      head.style.opacity = 0;
+      setTimeout(() => { place(to); head.style.opacity = 1; }, 350);
+      return;
+    }
+    const from = headLen, t0 = performance.now(), dur = 1100;
+    const step = t => { const k = Math.min(1, (t - t0) / dur), e = k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2; place(from + (to - from) * e); if (k < 1) raf = requestAnimationFrame(step); };
+    raf = requestAnimationFrame(step);
+  }
   const show = i => {
     cur = i;
     $$(".jstep").forEach((el, k) => { el.classList.toggle("active", k === i); el.classList.toggle("done", k < i); });
-    const pct = 100 * i / (STEPS.length - 1);
-    fill.style.width = pct + "%"; dot.style.left = pct + "%";
     panel.innerHTML = `<h4>${STEPS[i].i} ${STEPS[i].t}</h4><p>${STEPS[i].p}</p>`;
+    if (marks.length) glide(marks[i]);
   };
   const loop = () => { clearInterval(timer); timer = setInterval(() => { if (playing) show((cur + 1) % STEPS.length); }, 3600); };
   steps.addEventListener("click", e => { const s = e.target.closest(".jstep"); if (s) { show(+s.dataset.i); loop(); } });
   $("#j-toggle").onclick = e => { playing = !playing; e.target.textContent = playing ? "❚❚ Pause" : "▶ Play"; };
-  show(0); loop();
+  new ResizeObserver(layout).observe(steps);
+  show(0); layout(); loop();
 }
 
 /* ------------------------------------------------------------ architecture diagrams */
@@ -310,12 +392,15 @@ function imaging() {
   imagingPaper();
   if (!r) { $("#img-kpis").innerHTML = `<div class="glass kpi"><small>Pending</small><div class="s">${(R.imaging_paper || {})[mod] ? "Only the paper-exact run exists for this modality — see “Paper-exact protocol” below." : "Run imaging.py then export_site.py to populate this section."}</div></div>`; return; }
   const ep = r.history.paper.length, epPlus = r.history.plus.length;
-  $("#img-note").innerHTML = `<b>How to read these numbers.</b> Run profile “${r.profile}” on ${r.device}: the paper CNN trained ${ep} epochs (paper: 100), CovidNet-Plus ${epPlus}, evaluated on ${r.folds} held-out 10% fold${r.folds > 1 ? "s" : ""} (paper: 10-fold CV), with class-weighted loss instead of SMOTE-ENN synthetic images. The paper's ~99% is therefore <i>not</i> reproduced under this compute budget — the \`full\` profile restores the paper's settings on a GPU.`;
+  const ipm = (R.imaging_paper || {})[mod], ipx = ipm && ipm.models["Paper CNN"];
+  $("#img-note").innerHTML = `<b>How to read these numbers.</b> The charts compare eight models from the “${r.profile}” run: the paper CNN for ${ep} epochs and CovidNet-Plus for ${epPlus}, on ${r.folds} held-out 10% fold${r.folds > 1 ? "s" : ""}, with class-weighted loss instead of synthetic images.` +
+    (ipx ? ` The paper CNN was also re-run with the paper's exact protocol (100 epochs, 10 folds, SMOTE-ENN): <b>${fx(ipx.accuracy)}% ± ${fx(ipx.accuracy_std)}</b> against the paper's ${fx(R.paper[mod].CNN.accuracy)}%. That run is in the table at the end of this section, and <a href="#numbers" style="color:var(--cyan)">section 09</a> explains the gap.` : "");
   const M = r.models, P = R.paper[mod], best = IMG_ORDER.reduce((a, k) => (M[k] && (!a || M[k].accuracy > M[a].accuracy) ? k : a), null);
   const d = M[best].accuracy - M["Paper CNN"].accuracy;
   $("#img-kpis").innerHTML = [
-    ["Paper CNN · reproduced", fx(M["Paper CNN"].accuracy), `paper reports ${fx(P.CNN.accuracy)}%`, C.cyan, M["Paper CNN"].accuracy],
-    ["Best model · " + IMG_LABEL[best], fx(M[best].accuracy), `<span class="${d >= 0 ? "up-t" : "dn-t"}">${d >= 0 ? "▲" : "▼"} ${fx(Math.abs(d))} pt vs paper CNN</span>`, C.green, M[best].accuracy],
+    ipx ? ["Paper CNN · paper protocol, 10-fold", fx(ipx.accuracy), `± ${fx(ipx.accuracy_std)} · paper reports ${fx(P.CNN.accuracy)}%`, C.cyan, ipx.accuracy]
+        : ["Paper CNN · reproduced", fx(M["Paper CNN"].accuracy), `paper reports ${fx(P.CNN.accuracy)}%`, C.cyan, M["Paper CNN"].accuracy],
+    ["Best model · " + IMG_LABEL[best] + " · one fold", fx(M[best].accuracy), `<span class="${d >= 0 ? "up-t" : "dn-t"}">${d >= 0 ? "▲" : "▼"} ${fx(Math.abs(d))} pt vs paper CNN, same run</span>`, C.green, M[best].accuracy],
     ["AUC · " + IMG_LABEL[best], fx(M[best].auc, 4), `sensitivity ${fx(M[best].sensitivity)}% · specificity ${fx(M[best].specificity)}%`, C.violet, null],
     ["Calibration (ECE)", fx(r.calibration.after, 3), `from ${fx(r.calibration.before, 3)} · T = ${fx(r.calibration.temperature)}`, C.pink, null],
   ].map(k => `<div class="glass kpi tilt"><small>${k[0]}</small><div class="v" style="color:${k[3]}">${k[4] != null ? `<span data-to="${k[1]}" data-dec="2">0</span>%` : k[1]}</div><div class="s">${k[2]}</div></div>`).join("");
@@ -476,7 +561,7 @@ function bloodTable() {
 const NICE = { Age: "Age (years)", Sex: "Sex", NE: "Neutrophils %", LY: "Lymphocytes %", NET: "Neutrophils ×10⁹/L", LYT: "Lymphocytes ×10⁹/L", WBC: "WBC ×10⁹/L", PLT: "Platelets", HGB: "Haemoglobin", RDW: "RDW", MCV: "MCV", RBC: "RBC", MPV: "MPV", MCH: "MCH", MOT: "Monocytes ×10⁹/L", BAT: "Basophils ×10⁹/L", EOT: "Eosinophils ×10⁹/L", BA: "Basophils %", MCHC: "MCHC", HCT: "Haematocrit", EO: "Eosinophils %", MO: "Monocytes %" };
 const VISIBLE = ["Age", "Sex", "NE", "LY", "NET", "LYT", "WBC", "PLT", "HGB", "RDW", "MCV"];
 let vals = {};
-function forestPredict(v) {
+function forestLeaves(v) {
   const x = F.meta.features.map(n => {
     if (n === "NLR") return v.NE / (v.LY + .1);
     if (n === "PLR") return v.PLT / (v.LYT + .1);
@@ -484,10 +569,9 @@ function forestPredict(v) {
     if (n === "Mentzer") return v.MCV / v.RBC;
     return v[n];
   });
-  let s = 0;
-  for (const t of F.trees) { let n = 0; while (t.l[n] !== -1) n = x[t.f[n]] <= t.t[n] ? t.l[n] : t.r[n]; s += t.v[n]; }
-  return s / F.trees.length;
+  return F.trees.map(t => { let n = 0; while (t.l[n] !== -1) n = x[t.f[n]] <= t.t[n] ? t.l[n] : t.r[n]; return t.v[n]; });
 }
+function forestPredict(v) { const l = forestLeaves(v); return l.reduce((a, b) => a + b, 0) / l.length; }
 function live() {
   if (!F) { $("#live").style.display = "none"; return; }
   const m = F.meta, box = $("#sliders");
@@ -518,6 +602,38 @@ function live() {
     v.textContent = txt; v.style.color = col;
     const eff = VISIBLE.filter(n => n !== "Sex").concat(["Sex"]).map(n => { const t = { ...vals }; t[n] = n === "Sex" ? 1 - vals.Sex : m.raw_med[m.raw.indexOf(n)]; return [n, p - forestPredict(t)]; }).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, 3);
     $("#why").innerHTML = "Biggest levers vs. a typical patient: " + eff.map(([n, d]) => `<b style="color:${d > 0 ? C.red : C.cyan}">${NICE[n] || n} ${d > 0 ? "▲" : "▼"}${Math.abs(d * 100).toFixed(0)}%</b>`).join(" · ");
+    explain(p);
+  }
+  const votes = $("#votes");
+  votes.innerHTML = F.trees.map(() => "<i></i>").join("");
+  const cells = $$("i", votes);
+  const mix = (a, b, k) => a.map((x, i) => Math.round(x + (b[i] - x) * k));
+  const heat = v => { const g = [52, 211, 153], y = [251, 191, 36], r = [251, 113, 133]; return `rgb(${(v < .5 ? mix(g, y, v * 2) : mix(y, r, (v - .5) * 2)).join(",")})`; };
+  const base = Object.fromEntries(m.raw.map((n, i) => [n, m.raw_med[i]]));
+  const p0 = forestPredict(base);
+  if (R.blood) $("#ex-base").textContent = fx(100 * R.blood.severe / R.blood.n, 1);
+  // "Why this percentage?": tree votes, then an exact walk from the typical patient to this one
+  function explain(p) {
+    const leaves = forestLeaves(vals), sev = leaves.filter(v => v >= .5).length;
+    leaves.forEach((v, i) => cells[i].style.backgroundColor = heat(v));
+    $("#ex-pct").textContent = Math.round(p * 100);
+    $("#ex-votes").innerHTML = `<b>${sev} of ${leaves.length}</b> trees lean severe. Each tree drops this blood count down its branches to a leaf holding the share of severe visits it saw in training, with both classes weighted equally; the needle is the average of those ${leaves.length} shares.`;
+    const k = R.blood ? R.blood.severe / (R.blood.n - R.blood.severe) : 1088 / 3342, o = Math.min(p, .999) / (1 - Math.min(p, .999)), real = o * k / (1 + o * k);
+    $("#ex-real").innerHTML = `Because severe and non-severe visits were weighted equally in training, 50% on the gauge means “as likely as the average patient”. At real-world odds, where about 1 visit in 4 is severe, <b>${Math.round(p * 100)}%</b> on the gauge is roughly a <b>${Math.round(real * 100)}%</b> chance of a severe visit.`;
+    const changed = m.raw.filter(n => Math.abs(vals[n] - base[n]) > 1e-9);
+    const single = changed.map(n => [n, Math.abs(p - forestPredict({ ...vals, [n]: base[n] }))]).sort((a, b) => b[1] - a[1]).map(x => x[0]);
+    let curV = { ...base }, prev = p0;
+    const steps = single.map(n => { curV[n] = vals[n]; const np = forestPredict(curV), d = np - prev; prev = np; return [n, d]; });
+    const top = [...steps].sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, 4), rest = steps.filter(x => !top.includes(x));
+    const restSum = rest.reduce((a, x) => a + x[1], 0);
+    const rows = [...top, ...(rest.length ? [[`${rest.length} other value${rest.length > 1 ? "s" : ""}`, restSum]] : [])];
+    const mx = Math.max(.05, ...rows.map(r => Math.abs(r[1])));
+    const bar = d => `<div class="trk"><i style="${d >= 0 ? "left:50%" : `left:${50 - 50 * Math.abs(d) / mx}%`};width:${50 * Math.abs(d) / mx}%;background:${d >= 0 ? C.red : C.cyan}"></i></div>`;
+    const pts = d => `${d >= 0 ? "+" : "−"}${Math.abs(d * 100).toFixed(1)}`;
+    $("#wf").innerHTML = `<span>Typical patient (all medians)</span><div></div><span class="val">${fx(p0 * 100, 1)}%</span>` +
+      (rows.length ? rows.map(([n, d]) => `<span>${NICE[n] || n}${base[n] != null ? ` <small style="color:var(--muted)">${fx(vals[n], vals[n] > 50 ? 0 : 1)}</small>` : ""}</span>${bar(d)}<span class="val" style="color:${d >= 0 ? C.red : C.cyan}">${pts(d)}</span>`).join("")
+        : `<span style="grid-column:1/-1;color:var(--muted)">Every value sits at the median, so the needle stays at the baseline.</span>`) +
+      `<span class="tot">This patient</span><div></div><span class="val tot">${fx(p * 100, 1)}%</span>`;
   }
   update();
   triage();
@@ -547,7 +663,7 @@ function triage() {
     else final = ["ward", "→ General ward", `Blood-based severity risk ${(pb * 100).toFixed(0)}% — treat on ward, re-test if symptoms worsen.`];
     const steps = [
       ["🧪", "RT-PCR <i style='color:var(--muted)'>(simulated)</i>", "derived from the scan's label to demo routing", pcr ? "POSITIVE" : "NEGATIVE", pcr ? C.red : C.green],
-      ["🩻", "Imaging AI (calibrated ensemble)", `${c.g.truth === "COVID" || c.g.p_ens >= .5 ? "" : ""}P(COVID) from CovidNet-Plus × HGB`, `${(pc * 100).toFixed(1)}%`, imgPos ? C.red : C.green],
+      [ICON_XRAY, "Imaging AI (calibrated ensemble)", `${c.g.truth === "COVID" || c.g.p_ens >= .5 ? "" : ""}P(COVID) from CovidNet-Plus × HGB`, `${(pc * 100).toFixed(1)}%`, imgPos ? C.red : C.green],
       ["🔥", "Grad-CAM++ evidence", "regions that drove the decision", `<img src="assets/gradcam/${c.g.id}_plus.jpg" style="width:64px;height:64px;border-radius:10px;object-fit:cover">`, ""],
       ["🩸", "Blood severity forest", c.b ? "120 trees evaluated in your browser" : "skipped — not COVID-19", pb == null ? "—" : `${(pb * 100).toFixed(0)}%`, pb >= .5 ? C.red : C.green],
     ];
@@ -562,7 +678,7 @@ function triage() {
 }
 
 
-/* ------------------------------------------------------------ literature & gaps (rubric: problem + literature) */
+/* ------------------------------------------------------------ literature & gaps */
 const GAPS = [
   { g: "Leaky evaluation of the blood model", e: "SMOTE-ENN on all 4,430 rows, then row-wise 10-fold CV, while patients have up to 39 visits each.", a: () => R.blood ? `Paper protocol reproduced (${fx(R.blood.paper_protocol.ERT.accuracy, 1)}%), then patients kept apart: ${fx(R.blood.honest_smoteenn.ERT.accuracy, 1)}%, AUC ${fx(R.blood.honest_smoteenn.ERT.auc, 3)}.` : "Patient-grouped re-evaluation." },
   { g: "No validation on later or unseen patients", e: "Only internal CV; the paper lists real-hospital validation as future work.", a: () => "Patient-grouped CV (T1) and a temporal hold-out on later admissions (T2)." },
@@ -572,7 +688,7 @@ const GAPS = [
   { g: "Grad-CAM shown on chosen successes only", e: "COVID X-ray models are known to learn shortcuts (DeGrave 2021; Maguolo & Nanni 2021).", a: () => "Grad-CAM++ beside Grad-CAM, a real failure case, lung-masking shortcut test and corruption tests." },
   { g: "No subgroup analysis", e: "Performance by age or sex is not reported.", a: () => "Subgroup AUC with patient-bootstrap 95% CIs (T3)." },
   { g: "Compact model, no improvement path", e: "Residual links, attention, augmentation and calibration are cheap but unexplored.", a: () => "CovidNet-Plus: still >10× smaller than MobileNet, better AUC and calibration." },
-  { g: "Unified lab described, not demonstrated", e: "Figure 1 is a diagram.", a: () => "Browser triage simulator runs imaging + blood models on real held-out cases (section 10)." },
+  { g: "Unified lab described, not demonstrated", e: "Figure 1 is a diagram.", a: () => "Browser triage simulator runs imaging + blood models on real held-out cases (section 11)." },
 ];
 const FUTURE = [
   "External validation on a second hospital's blood data and a different X-ray source, to measure the drop warned about by Cabitza et al. and Roberts et al.",
@@ -598,7 +714,7 @@ function literature() {
   $("#future").innerHTML = FUTURE.map(f => `<li>${f}</li>`).join("");
 }
 
-/* ------------------------------------------------------------ data audit (rubric: datasets + preprocessing) */
+/* ------------------------------------------------------------ data audit */
 function audit() {
   const A = (R.audit || {}).blood; if (!A) return;
   const pct = (a, b) => fx(100 * a / b, 1) + "%";
@@ -632,7 +748,7 @@ function audit() {
     : `<p class="note">Pending: run <code>python src/data_audit.py</code> on the machine that holds the images.</p>`);
 }
 
-/* ------------------------------------------------------------ test cases (rubric: convincing results for various test cases) */
+/* ------------------------------------------------------------ test cases */
 function testCases() {
   const T = R.tests;
   if (!T || !T.unseen_patients) { $("#tc-note").innerHTML = "<b>Pending:</b> run <code>python src/test_cases.py</code> to fill this section."; imagingTests("xray"); return; }
@@ -674,6 +790,85 @@ function imagingTests(m) {
     options: { maintainAspectRatio: false, scales: { y: { min: 40, max: 100, title: { display: true, text: `accuracy % (${I.test_images} held-out scans)` } } }, plugins: { legend: { position: "bottom" } } } });
 }
 
+/* ------------------------------------------------------------ why these numbers */
+// exact duplicates after the 100x100 resize (MD5 of the pixel array); cross = groups holding both labels
+const DUP = { xray: { groups: 404, files: 940, cross: 83, ceiling: 100 * (1 - 83 / 9544) }, ct: { groups: 25, files: 68, cross: 1, ceiling: 100 * (1 - 1 / 8055) } };
+const PAPER_SMOTE = { xray: [4960, 4186], ct: [5300, 4659] };   // base paper, after SMOTE-ENN (COVID / non-COVID)
+function numbers() {
+  const ip = R.imaging_paper || {}, b = R.blood, P = R.paper || {};
+  if (!$("#why-grid")) return;
+  const n0 = v => Math.round(v).toLocaleString();
+  const gapCls = (g, sd) => Math.abs(g) <= 1.5 * sd ? "near" : Math.abs(g) <= 3 * sd ? "mid" : "far";
+  const scale = (lo, hi, o) => {
+    const x = v => `${Math.max(0, Math.min(100, 100 * (v - lo) / (hi - lo)))}%`;
+    const ticks = []; for (let t = Math.ceil(lo); t <= hi; t += o.step) ticks.push(t);
+    return `<div class="w-scale"><div class="axis"></div>` +
+      (o.sd != null ? `<div class="band" style="left:${x(o.mean - o.sd)};width:calc(${x(o.mean + o.sd)} - ${x(o.mean - o.sd)})"></div>` : "") +
+      (o.folds || []).map((f, i) => `<div class="fold" style="left:${x(f)};transition-delay:${i * 60}ms" title="fold ${i + 1}: ${fx(f)}%"></div>`).join("") +
+      (o.extra || []).map(e => `<div class="mean" style="left:${x(e[0])};background:${e[2]}"></div><div class="lbl" style="left:${x(e[0])};color:${e[2]}">${e[1]}</div>`).join("") +
+      `<div class="mean" style="left:${x(o.mean)}"></div><div class="paper" style="left:${x(o.paper)}" title="paper: ${fx(o.paper)}%"></div>` +
+      ticks.map(t => `<div class="tick" style="left:${x(t)}">${t}</div>`).join("") + `</div>`;
+  };
+  const card = c => `<div class="glass wcard reveal"><h3>${c.t}<small>${c.sub}</small></h3>
+    <div class="w-nums"><div class="ours">${fx(c.ours)}<em>%</em></div><div class="vs">paper <b>${fx(c.paper)}%</b></div>
+    <span class="w-gap ${c.cls}">${c.ours - c.paper >= 0 ? "+" : "−"}${fx(Math.abs(c.ours - c.paper))} pts</span></div>
+    ${c.scale}<ul class="w-reasons">${c.why.map(w => `<li>${w}</li>`).join("")}</ul><p class="w-foot">${c.foot}</p></div>`;
+  const cards = [];
+  for (const [m, name] of [["xray", "Chest X-ray CNN"], ["ct", "CT CNN"]]) {
+    const r = ip[m]; if (!r) continue;
+    const M = r.models["Paper CNN"], folds = r.per_fold.map(f => f.accuracy), pa = P[m].CNN.accuracy, sm = r.smote_enn, ps = PAPER_SMOTE[m];
+    const g = M.accuracy - pa, z = Math.abs(g) / M.accuracy_std, ours = sm.after.covid + sm.after.non_covid, theirs = ps[0] + ps[1];
+    cards.push(card({ t: name, sub: `paper protocol · ${r.epochs} epochs · ${r.folds}-fold CV · ${r.device}`, ours: M.accuracy, paper: pa, cls: gapCls(g, M.accuracy_std),
+      scale: scale(94, 100, { step: 1, folds, mean: M.accuracy, paper: pa }),
+      why: [
+        `<b>A different synthetic set.</b> SMOTE-ENN runs on all images before the split, exactly as in the paper. It left us ${n0(ours)} images (${n0(sm.after.covid)} COVID / ${n0(sm.after.non_covid)} non-COVID); the paper reports ${n0(theirs)} (${n0(ps[0])} / ${n0(ps[1])}). Synthetic images are blends of real ones, so the mix in each test fold changes how easy that fold is.`,
+        `<b>Normal fold-to-fold spread.</b> Our ten folds ran from ${fx(Math.min(...folds))}% to ${fx(Math.max(...folds))}% (sd ${fx(M.accuracy_std)}). The paper's figure sits ${fx(z, 1)} sd from our mean, and its seed and fold assignments are not published, so folds cannot be matched one to one.`,
+        `<b>Same recipe, different machine.</b> 100×100 inputs, Adam 1e-4, batch 16, 100 epochs, no early stopping, in 32-bit on a 2 GB GeForce 940MX. The paper used an RTX 3060; random initialisation and GPU kernels differ.`,
+        ...(DUP[m] ? [`<b>A hard ceiling.</b> After resizing to 100×100, ${DUP[m].groups} groups of identical images remain (${DUP[m].files} files); ${DUP[m].cross} of them carry <i>both</i> labels. Identical inputs get the same prediction, so no model can score above <b>${fx(DUP[m].ceiling)}%</b> on the original images.${m === "xray" ? " The paper's 99.02% sits just below that limit." : ""}`] : []),
+        `<b>Like for like.</b> The paper's sensitivity equals its specificity in every row, which only happens with a two-class macro average. Ours on that basis is <b>${fx((M.sensitivity + M.specificity) / 2)}%</b> (sensitivity ${fx(M.sensitivity)}%, specificity ${fx(M.specificity)}%), with AUC ${fx(M.auc, 4)}.`,
+      ],
+      foot: `Synthetic images made before the split can sit next to their source image in the test fold, so this protocol flatters both us and the paper. Section 13 lists what that means.` }));
+  }
+  if (b) {
+    const E = b.paper_protocol.ERT, pa = P.blood.ERT.accuracy, beat = BL_NAMES.filter(n => b.paper_protocol[n].accuracy > P.blood[n].accuracy);
+    cards.push(card({ t: "Blood severity · Extra Trees", sub: "paper protocol · SMOTE-ENN on all rows · row-wise 10-fold CV", ours: E.accuracy, paper: pa, cls: gapCls(E.accuracy - pa, E.accuracy_std),
+      scale: scale(94, 100, { step: 1, mean: E.accuracy, sd: E.accuracy_std, paper: pa }),
+      why: [
+        `<b>Within one standard deviation.</b> ${fx(E.accuracy)}% ± ${fx(E.accuracy_std)} against ${fx(pa)}%: the gap is smaller than the spread between our own folds.`,
+        `<b>Same recipe.</b> The paper's 15 RFE-selected markers, SMOTE-ENN on all ${b.n.toLocaleString()} rows (${b.smoteenn_counts.before.join(" / ")} → ${b.smoteenn_counts.after.join(" / ")} non-severe / severe), then row-wise stratified 10-fold CV.`,
+        `<b>Model by model.</b> ${beat.length} of the paper's 7 models score higher here (${beat.map(n => `${n} ${fx(b.paper_protocol[n].accuracy)} vs ${fx(P.blood[n].accuracy)}`).join(", ")}); the rest are within about one point.`,
+      ],
+      foot: `This reproduces the paper's number. The next card shows why it is not what a new patient would get.` }));
+    const H = b.honest_smoteenn.ERT, S = (b.improved || {})["Stacked ensemble"], L = ((R.tests || {}).leakage_mechanism || {});
+    const rw = L["Row-wise CV (paper)"], pg = L["Patient-grouped CV (ours)"];
+    if (S) cards.push(card({ t: "Blood severity · a new patient", sub: "patients kept apart · resampling inside training folds only", ours: S.accuracy, paper: pa, cls: "far",
+      scale: scale(75, 100, { step: 5, mean: S.accuracy, sd: S.accuracy_std, paper: pa, extra: [[E.accuracy, "paper protocol", C.amber], [H.accuracy, "", C.grey]] }),
+      why: [
+        `<b>The same people on both sides.</b> ${b.n.toLocaleString()} visits come from ${b.patients.toLocaleString()} patients, ${fx(b.n / b.patients, 1)} each. Row-wise CV puts one person's visits in training and test: ${rw ? `a test visit's nearest training visit is the same patient <b>${fx(rw.nearest_is_same_patient, 0)}%</b> of the time, against ${fx(pg.nearest_is_same_patient, 0)}% when patients are kept apart.` : "the model partly recognises the patient."}`,
+        `<b>The drop is the leakage.</b> The same Extra Trees model falls from ${fx(E.accuracy)}% to ${fx(H.accuracy)}% (AUC ${fx(H.auc, 3)}) once patients are kept apart. Nothing else changed.`,
+        `<b>What wins some back.</b> Haematology ratios, age and sex, Optuna tuning and stacking lift AUC to <b>${fx(S.auc, 3)}</b> and balanced accuracy to ${fx(S.balanced_accuracy)}% (sensitivity ${fx(S.sensitivity)}%, specificity ${fx(S.specificity)}%).`,
+      ],
+      foot: `${fx(S.accuracy)}% ± ${fx(S.accuracy_std)} is the figure to expect on the next ward. The stacked model trades raw accuracy for catching more severe cases.` }));
+  }
+  $("#why-grid").innerHTML = cards.join("");
+  // the blood ladder, in the paper's own metric: its sensitivity = specificity column is balanced accuracy
+  if (b && b.improved) {
+    const im = b.improved, rows = [
+      ["Paper, as reported (ERT)", P.blood.ERT.sensitivity, P.blood.ERT.accuracy, null, C.pink],
+      ["Paper's protocol, reproduced (ERT)", b.paper_protocol.ERT.balanced_accuracy, b.paper_protocol.ERT.accuracy, b.paper_protocol.ERT.auc, C.amber],
+      ["Same ERT, patients kept apart", b.honest_smoteenn.ERT.balanced_accuracy, b.honest_smoteenn.ERT.accuracy, b.honest_smoteenn.ERT.auc, C.grey],
+      ["Tuned ERT + ratios + age/sex", im["Tuned ERT"].balanced_accuracy, im["Tuned ERT"].accuracy, im["Tuned ERT"].auc, C.cyan],
+      ["Stacked ensemble (final)", im["Stacked ensemble"].balanced_accuracy, im["Stacked ensemble"].accuracy, im["Stacked ensemble"].auc, C.violet],
+    ];
+    const lo = 50, hi = 100;
+    $("#why-ladder").innerHTML = `<h3>From 98% to 82%, one step at a time</h3><p>Bars show balanced accuracy, the paper's own metric (its sensitivity and specificity columns are both this macro average). Accuracy and AUC are on the right.</p>
+      <div class="lad">${rows.map(r => `<span>${r[0]}</span><div class="bar"><i data-w="${100 * (r[1] - lo) / (hi - lo)}" style="background:${r[4]}"></i></div><div class="v"><b>${fx(r[1], 1)}%</b> · acc ${fx(r[2], 1)}${r[3] != null ? ` · AUC ${fx(r[3], 3)}` : ""}</div>`).join("")}</div>
+      <p class="note" style="margin:16px 0 0">Bar axis runs from 50% (coin toss) to 100%.</p>`;
+    const bo = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { $$(".lad i", e.target).forEach(i => i.style.width = i.dataset.w + "%"); bo.unobserve(e.target); } }), { threshold: .3 });
+    bo.observe($("#why-ladder"));
+  }
+}
+
 /* ------------------------------------------------------------ wiring */
 function wire() {
   $("#img-tabs").onclick = e => { const b = e.target.closest(".tab"); if (!b) return; mod = b.dataset.m; $$("#img-tabs .tab").forEach(t => t.classList.toggle("active", t === b)); imaging(); };
@@ -684,7 +879,7 @@ function wire() {
 }
 
 function init() {
-  buildStatic(); heroStats(); literature(); dataCards(); audit(); journey(); arch(); imaging(); xai(); blood(); testCases(); live(); wire();
+  buildStatic(); heroStats(); typer(); literature(); dataCards(); audit(); journey(); arch(); imaging(); xai(); blood(); testCases(); numbers(); live(); wire();
   bgNetwork(); lungs(); tiltInit(); observeReveals(); watchCounts();
 }
 document.readyState === "loading" ? addEventListener("DOMContentLoaded", init) : init();
