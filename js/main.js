@@ -22,11 +22,19 @@ if (window.Chart) {
   Chart.defaults.plugins.tooltip.borderWidth = 1;
   Chart.defaults.plugins.tooltip.padding = 10;
 }
+// charts are built when they first come near the viewport, so the page doesn't animate 16 charts at load
+const chartSeen = new Set(), chartWait = new Map();
+const chartObs = new IntersectionObserver(es => es.forEach(e => {
+  if (!e.isIntersecting) return;
+  const id = e.target.id; chartObs.unobserve(e.target); chartSeen.add(id);
+  if (chartWait.has(id)) { const cfg = chartWait.get(id); chartWait.delete(id); chart(id, cfg); }
+}), { rootMargin: "250px 0px" });
 function chart(id, cfg) {
   if (!window.Chart) return;
-  if (charts[id]) charts[id].destroy();
   const el = document.getElementById(id);
   if (!el) return;
+  if (!chartSeen.has(id)) { chartWait.set(id, cfg); chartObs.observe(el); return; }
+  if (charts[id]) charts[id].destroy();
   charts[id] = new Chart(el, cfg);
   return charts[id];
 }
@@ -35,15 +43,34 @@ const lineGrad = (ctx, c) => { const g = ctx.createLinearGradient(0, 0, 0, 300);
 /* ------------------------------------------------------------ reveal, progress, nav, cursor */
 const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), { threshold: .12 });
 function observeReveals() { $$(".reveal:not(.in)").forEach(el => io.observe(el)); }
+// canvases skip frames while the page is scrolling, so scrolling gets the whole frame budget
+let scrolling = false, scrollT = 0, progQ = false;
+const prog = $("#progress");
 addEventListener("scroll", () => {
-  const h = document.documentElement;
-  $("#progress").style.width = (100 * h.scrollTop / (h.scrollHeight - h.clientHeight)) + "%";
+  scrolling = true; clearTimeout(scrollT); scrollT = setTimeout(() => { scrolling = false; }, 160);
+  if (progQ) return;
+  progQ = true;
+  requestAnimationFrame(() => {
+    progQ = false;
+    const h = document.documentElement;
+    prog.style.transform = `scaleX(${h.scrollTop / Math.max(1, h.scrollHeight - h.clientHeight)})`;
+  });
 }, { passive: true });
+// CSS loops (ripples, marching dashes, layer bobbing) pause in sections that are off screen
+const stillObs = new IntersectionObserver(es => es.forEach(e => e.target.classList.toggle("still", !e.isIntersecting)));
+$$("main > section").forEach(s => stillObs.observe(s));
 const secObs = new IntersectionObserver(es => es.forEach(e => {
   if (e.isIntersecting) $$("nav a").forEach(a => a.classList.toggle("on", a.getAttribute("href") === "#" + e.target.id));
 }), { rootMargin: "-45% 0px -50% 0px" });
 $$("section[id]").forEach(s => secObs.observe(s));
-addEventListener("pointermove", e => { const g = $("#cursor-glow"); g.style.left = e.clientX + "px"; g.style.top = e.clientY + "px"; }, { passive: true });
+const glow = $("#cursor-glow");
+let gx = 0, gy = 0, glowQ = false;
+addEventListener("pointermove", e => {
+  gx = e.clientX; gy = e.clientY;
+  if (glowQ) return;
+  glowQ = true;
+  requestAnimationFrame(() => { glowQ = false; glow.style.transform = `translate3d(${gx - 260}px,${gy - 260}px,0)`; });
+}, { passive: true });
 
 function countUp(el, to, dec = 0, dur = 1600, suffix = "") {
   if (reduce) { el.textContent = Number(to).toFixed(dec) + suffix; return; }
@@ -59,94 +86,183 @@ const watchCounts = (root = document) => $$("[data-to]", root).forEach(el => cou
 function tiltInit() {
   if (reduce) return;
   $$(".tilt").forEach(el => {
+    let ev = null;
     el.addEventListener("pointermove", e => {
-      const b = el.getBoundingClientRect(), x = (e.clientX - b.left) / b.width - .5, y = (e.clientY - b.top) / b.height - .5;
-      el.style.transform = `perspective(900px) rotateY(${x * 7}deg) rotateX(${-y * 7}deg) translateY(-4px)`;
+      if (!ev) requestAnimationFrame(() => {
+        if (!ev) return;
+        const b = el.getBoundingClientRect(), x = (ev.clientX - b.left) / b.width - .5, y = (ev.clientY - b.top) / b.height - .5;
+        el.style.transform = `perspective(900px) rotateY(${x * 7}deg) rotateX(${-y * 7}deg) translateY(-4px)`;
+        ev = null;
+      });
+      ev = e;
     });
-    el.addEventListener("pointerleave", () => el.style.transform = "");
+    el.addEventListener("pointerleave", () => { ev = null; el.style.transform = ""; });
   });
 }
 
 /* ------------------------------------------------------------ background network + hero lungs */
+// Both canvases run at ~30 fps on a 1x backing store, skip frames while the page scrolls or the tab is hidden,
+// and use a handful of batched draw calls per frame instead of one per dot or line.
+function frameLoop(draw, fps = 30, isOn = () => true) {
+  let last = -1e9;
+  const tick = t => {
+    requestAnimationFrame(tick);
+    if (document.hidden || scrolling || !isOn() || t - last < 1000 / fps - 2) return;
+    const dt = Math.min(.1, (t - last) / 1000); last = t;
+    draw(t / 1000, dt);
+  };
+  requestAnimationFrame(tick);
+}
 function bgNetwork() {
   const cv = $("#bg-canvas"), cx = cv.getContext("2d");
   let W, H, pts = [];
-  const mouse = { x: -999, y: -999 };
+  const mouse = { x: -999, y: -999 }, L = 150, L2 = L * L, B = 4;
   const size = () => {
-    W = cv.width = innerWidth * devicePixelRatio; H = cv.height = innerHeight * devicePixelRatio;
-    const n = Math.min(90, Math.floor(innerWidth / 16));
-    pts = Array.from({ length: n }, () => ({ x: Math.random() * W, y: Math.random() * H, vx: (Math.random() - .5) * .35 * devicePixelRatio, vy: (Math.random() - .5) * .35 * devicePixelRatio }));
+    W = cv.width = innerWidth; H = cv.height = innerHeight;
+    const n = Math.min(48, Math.floor(innerWidth / 28));
+    pts = Array.from({ length: n }, () => ({ x: Math.random() * W, y: Math.random() * H, vx: (Math.random() - .5) * 21, vy: (Math.random() - .5) * 21 }));
   };
   size(); addEventListener("resize", size);
-  addEventListener("pointermove", e => { mouse.x = e.clientX * devicePixelRatio; mouse.y = e.clientY * devicePixelRatio; }, { passive: true });
-  const L = 150 * devicePixelRatio;
-  (function draw() {
+  addEventListener("pointermove", e => { mouse.x = e.clientX; mouse.y = e.clientY; }, { passive: true });
+  const lines = Array.from({ length: B }, () => []), hits = Array.from({ length: B }, () => []);
+  const draw = (t, dt) => {
     cx.clearRect(0, 0, W, H);
+    lines.forEach(a => a.length = 0); hits.forEach(a => a.length = 0);
     for (const p of pts) {
-      p.x += p.vx; p.y += p.vy;
+      p.x += p.vx * dt; p.y += p.vy * dt;
       if (p.x < 0 || p.x > W) p.vx *= -1;
       if (p.y < 0 || p.y > H) p.vy *= -1;
     }
     for (let i = 0; i < pts.length; i++) {
       const a = pts[i];
-      cx.fillStyle = "rgba(34,211,238,.7)"; cx.beginPath(); cx.arc(a.x, a.y, 1.6 * devicePixelRatio, 0, 7); cx.fill();
       for (let j = i + 1; j < pts.length; j++) {
-        const b = pts[j], d = Math.hypot(a.x - b.x, a.y - b.y);
-        if (d < L) { cx.strokeStyle = `rgba(139,92,246,${.28 * (1 - d / L)})`; cx.lineWidth = devicePixelRatio * .7; cx.beginPath(); cx.moveTo(a.x, a.y); cx.lineTo(b.x, b.y); cx.stroke(); }
+        const b = pts[j], dx = a.x - b.x, dy = a.y - b.y, d2 = dx * dx + dy * dy;
+        if (d2 < L2) lines[Math.min(B - 1, ((1 - Math.sqrt(d2) / L) * B) | 0)].push(a.x, a.y, b.x, b.y);
       }
-      const dm = Math.hypot(a.x - mouse.x, a.y - mouse.y);
-      if (dm < L * 1.4) { cx.strokeStyle = `rgba(34,211,238,${.5 * (1 - dm / (L * 1.4))})`; cx.beginPath(); cx.moveTo(a.x, a.y); cx.lineTo(mouse.x, mouse.y); cx.stroke(); }
+      const mx = a.x - mouse.x, my = a.y - mouse.y, m2 = mx * mx + my * my;
+      if (m2 < L2 * 1.96) hits[Math.min(B - 1, ((1 - Math.sqrt(m2) / (L * 1.4)) * B) | 0)].push(a.x, a.y);
     }
-    if (!reduce) requestAnimationFrame(draw);
-  })();
+    cx.lineWidth = .7;
+    for (let k = 0; k < B; k++) {
+      const q = lines[k], h = hits[k];
+      if (q.length) {
+        cx.strokeStyle = `rgba(139,92,246,${(.28 * (k + .5) / B).toFixed(3)})`; cx.beginPath();
+        for (let i = 0; i < q.length; i += 4) { cx.moveTo(q[i], q[i + 1]); cx.lineTo(q[i + 2], q[i + 3]); }
+        cx.stroke();
+      }
+      if (h.length) {
+        cx.strokeStyle = `rgba(34,211,238,${(.5 * (k + .5) / B).toFixed(3)})`; cx.beginPath();
+        for (let i = 0; i < h.length; i += 2) { cx.moveTo(h[i], h[i + 1]); cx.lineTo(mouse.x, mouse.y); }
+        cx.stroke();
+      }
+    }
+    cx.fillStyle = "rgba(34,211,238,.7)"; cx.beginPath();
+    for (const p of pts) { cx.moveTo(p.x + 1.6, p.y); cx.arc(p.x, p.y, 1.6, 0, 7); }
+    cx.fill();
+  };
+  if (reduce) draw(0, 0); else frameLoop(draw, 30);
 }
 
+// The lung cloud is drawn on the GPU when WebGL is available: one draw call per frame, with the rotation,
+// breathing and twinkle done in the vertex shader. Without WebGL it falls back to a lighter 2D canvas.
+const LUNG_VS = `attribute vec3 p; attribute vec3 a;
+uniform float t, breathe, S, dpr; uniform vec4 rot; uniform vec2 res;
+varying vec4 col;
+vec3 hsl(float h, float s, float l) { vec3 k = clamp(abs(mod(h * 6. + vec3(0., 4., 2.), 6.) - 3.) - 1., 0., 1.); return l + s * (k - .5) * (1. - abs(2. * l - 1.)); }
+void main() {
+  vec3 q = p * breathe;
+  float x1 = q.x * rot.x + q.z * rot.y, z1 = -q.x * rot.y + q.z * rot.x;
+  float y2 = q.y * rot.z - z1 * rot.w, z2 = q.y * rot.w + z1 * rot.z;
+  float persp = 1. / (1.9 - z2), depth = clamp((z2 + .6) / 1.2, 0., 1.);
+  gl_Position = vec4(2. * x1 * S * persp / res.x, -2. * y2 * S * persp / res.y, 0., 1.);
+  gl_PointSize = max(1., a.y * persp * 3. * dpr);
+  col = vec4(hsl((190. + 80. * a.x + 40. * depth) / 360., .95, (52. + 16. * depth) / 100.), (.18 + .5 * depth) * (.65 + .35 * sin(t * 6. + a.z)));
+}`;
+const LUNG_FS = `precision mediump float; varying vec4 col;
+void main() { float r = length(gl_PointCoord - .5) * 2.; float k = col.a * clamp((1. - r) * 3., 0., 1.); gl_FragColor = vec4(col.rgb * k, k); }`;
 function lungs() {
-  const cv = $("#lung-canvas"), cx = cv.getContext("2d");
-  let W, H;
-  const pts = [];
+  const cv = $("#lung-canvas"), hero = $(".hero");
+  let inView = true, mx = 0, my = 0;
+  const P = [];
   const rnd = (a, b) => a + Math.random() * (b - a);
   const lobe = (sx, n) => {
     for (let i = 0; i < n; i++) {
       const u = Math.random() * Math.PI * 2, v = Math.acos(2 * Math.random() - 1), r = Math.pow(Math.random(), .28);
       let x = Math.sin(v) * Math.cos(u) * .44, y = Math.cos(v) * .82, z = Math.sin(v) * Math.sin(u) * .38;
-      x *= 1 + .18 * (y + .82) / 1.64 * 0;                       // keep lobes elliptical
       x = sx * (.5 + .12 * (1 - y)) + x * r; y = y * r - .05; z *= r;
       if (sx * x < .08) continue;                                // cardiac notch
-      pts.push({ x, y, z, h: rnd(0, 1), s: rnd(.8, 1.9), tw: rnd(0, 7) });
+      P.push(x, y, z, rnd(0, 1), rnd(.8, 1.9), rnd(0, 7));
     }
   };
   lobe(1, 4200); lobe(-1, 4200);
-  for (let i = 0; i < 260; i++) { const t = Math.random(); pts.push({ x: rnd(-.015, .015), y: -1.05 + t * .95, z: rnd(-.015, .015), h: .5, s: 1.6, tw: rnd(0, 7) }); }
-  [[-1, .35], [1, .35]].forEach(([s]) => { for (let i = 0; i < 110; i++) { const t = Math.random(); pts.push({ x: s * t * .46, y: -.1 + t * .42, z: rnd(-.012, .012), h: .5, s: 1.5, tw: rnd(0, 7) }); } });
-  const size = () => { W = cv.width = cv.clientWidth * devicePixelRatio; H = cv.height = cv.clientHeight * devicePixelRatio; };
-  size(); addEventListener("resize", size);
-  let mx = 0, my = 0;
+  for (let i = 0; i < 260; i++) { const t = Math.random(); P.push(rnd(-.015, .015), -1.05 + t * .95, rnd(-.015, .015), .5, 1.6, rnd(0, 7)); }
+  [-1, 1].forEach(s => { for (let i = 0; i < 110; i++) { const t = Math.random(); P.push(s * t * .46, -.1 + t * .42, rnd(-.012, .012), .5, 1.5, rnd(0, 7)); } });
+  const pts = Float32Array.from(P), N = pts.length / 6;
+  new IntersectionObserver(es => { inView = es[0].isIntersecting; }).observe(hero);
   addEventListener("pointermove", e => { mx = (e.clientX / innerWidth - .5); my = (e.clientY / innerHeight - .5); }, { passive: true });
-  let t = 0;
-  (function draw() {
-    t += .006;
-    cx.clearRect(0, 0, W, H);
-    const breathe = 1 + .035 * Math.sin(t * 3.2), ry = t * .8 + mx * 1.2, rx = -.25 + my * .5;
-    const cr = Math.cos(ry), sr = Math.sin(ry), cX = Math.cos(rx), sX = Math.sin(rx);
-    cx.globalCompositeOperation = "lighter";
-    const S = Math.min(W, H) * .42, sorted = [];
-    for (const p of pts) {
-      let x = p.x * breathe, y = p.y * breathe, z = p.z * breathe;
-      const x1 = x * cr + z * sr, z1 = -x * sr + z * cr;
-      const y2 = y * cX - z1 * sX, z2 = y * sX + z1 * cX;
-      sorted.push([x1, y2, z2, p]);
+
+  function webgl() {
+    const gl = cv.getContext("webgl", { alpha: true, premultipliedAlpha: true, antialias: false, depth: false, stencil: false, powerPreference: "low-power" });
+    if (!gl) return null;
+    const sh = (type, src) => { const o = gl.createShader(type); gl.shaderSource(o, src); gl.compileShader(o); return o; };
+    const pr = gl.createProgram();
+    gl.attachShader(pr, sh(gl.VERTEX_SHADER, LUNG_VS)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, LUNG_FS)); gl.linkProgram(pr);
+    if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) return null;
+    gl.useProgram(pr);
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer()); gl.bufferData(gl.ARRAY_BUFFER, pts, gl.STATIC_DRAW);
+    const aP = gl.getAttribLocation(pr, "p"), aA = gl.getAttribLocation(pr, "a");
+    gl.enableVertexAttribArray(aP); gl.vertexAttribPointer(aP, 3, gl.FLOAT, false, 24, 0);
+    gl.enableVertexAttribArray(aA); gl.vertexAttribPointer(aA, 3, gl.FLOAT, false, 24, 12);
+    const u = n => gl.getUniformLocation(pr, n), uT = u("t"), uB = u("breathe"), uS = u("S"), uD = u("dpr"), uR = u("rot"), uRes = u("res");
+    gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);                 // additive, like the 2D "lighter" mode
+    gl.clearColor(0, 0, 0, 0);
+    let W, H, D;
+    const size = () => { D = Math.min(devicePixelRatio || 1, 2); W = cv.width = Math.round(cv.clientWidth * D); H = cv.height = Math.round(cv.clientHeight * D); gl.viewport(0, 0, W, H); };
+    size(); addEventListener("resize", size);
+    return sec => {
+      const t = sec * .36, ry = t * .8 + mx * 1.2, rx = -.25 + my * .5;
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.uniform1f(uT, t); gl.uniform1f(uB, 1 + .035 * Math.sin(t * 3.2)); gl.uniform1f(uS, Math.min(W, H) * .42 * 1.9); gl.uniform1f(uD, D);
+      gl.uniform4f(uR, Math.cos(ry), Math.sin(ry), Math.cos(rx), Math.sin(rx)); gl.uniform2f(uRes, W, H);
+      gl.drawArrays(gl.POINTS, 0, N);
+    };
+  }
+  function canvas2d() {
+    const cx = cv.getContext("2d"), STEP = 3;                      // every third particle, drawn as pre-made dots
+    if (!cx) return () => {};
+    const HB = 14, LB = 4, SP = 16, sprites = [];
+    for (let h = 0; h < HB; h++) for (let l = 0; l < LB; l++) {
+      const c = document.createElement("canvas"); c.width = c.height = SP;
+      const g = c.getContext("2d");
+      g.fillStyle = `hsl(${190 + h * 10},95%,${52 + l * 16 / (LB - 1)}%)`;
+      g.beginPath(); g.arc(SP / 2, SP / 2, SP / 2 - 1, 0, 7); g.fill();
+      sprites.push(c);
     }
-    sorted.sort((a, b) => a[2] - b[2]);
-    for (const [x, y, z, p] of sorted) {
-      const persp = 1 / (1.9 - z), px = W * .5 + x * S * persp * 1.9, py = H * .5 + y * S * persp * 1.9;
-      const depth = (z + .6) / 1.2, tw = .65 + .35 * Math.sin(t * 6 + p.tw);
-      const hue = 190 + 80 * p.h + 40 * depth;
-      cx.fillStyle = `hsla(${hue},95%,${52 + depth * 16}%,${(.18 + .5 * depth) * tw})`;
-      cx.beginPath(); cx.arc(px, py, p.s * persp * devicePixelRatio * 1.5, 0, 7); cx.fill();
-    }
-    if (!reduce) requestAnimationFrame(draw);
-  })();
+    let W, H;
+    const size = () => { W = cv.width = cv.clientWidth; H = cv.height = cv.clientHeight; };
+    size(); addEventListener("resize", size);
+    return sec => {
+      const t = sec * .36;
+      cx.clearRect(0, 0, W, H);
+      const breathe = 1 + .035 * Math.sin(t * 3.2), ry = t * .8 + mx * 1.2, rx = -.25 + my * .5;
+      const cr = Math.cos(ry), sr = Math.sin(ry), cX = Math.cos(rx), sX = Math.sin(rx);
+      const S = Math.min(W, H) * .42 * 1.9, cxW = W * .5, cyH = H * .5;
+      cx.globalCompositeOperation = "lighter";   // additive, so draw order doesn't matter and no depth sort is needed
+      for (let o = 0; o < pts.length; o += 6 * STEP) {
+        const x = pts[o] * breathe, y = pts[o + 1] * breathe, z = pts[o + 2] * breathe;
+        const x1 = x * cr + z * sr, z1 = -x * sr + z * cr;
+        const y2 = y * cX - z1 * sX, z2 = y * sX + z1 * cX;
+        const persp = 1 / (1.9 - z2), depth = Math.max(0, Math.min(1, (z2 + .6) / 1.2));
+        const hb = Math.min(HB - 1, Math.max(0, Math.round((80 * pts[o + 3] + 40 * depth) / 10))), lb = Math.round(depth * (LB - 1));
+        const r = pts[o + 4] * persp * 1.8, px = cxW + x1 * S * persp, py = cyH + y2 * S * persp;
+        cx.globalAlpha = Math.min(1, 1.6 * (.18 + .5 * depth) * (.65 + .35 * Math.sin(t * 6 + pts[o + 5])));
+        cx.drawImage(sprites[hb * LB + lb], px - r, py - r, 2 * r, 2 * r);
+      }
+      cx.globalAlpha = 1; cx.globalCompositeOperation = "source-over";
+    };
+  }
+  const draw = webgl() || canvas2d();
+  if (reduce) draw(0); else frameLoop(draw, 30, () => inView);
 }
 
 /* ------------------------------------------------------------ static content */
@@ -276,13 +392,13 @@ function dataCards() {
 function journey() {
   const steps = $("#j-steps"), panel = $("#j-panel"), svg = $("#j-path");
   steps.insertAdjacentHTML("beforeend", STEPS.map((s, i) => `<div class="jstep" data-i="${i}"><div class="node">${s.i}</div><span>${s.n}</span></div>`).join(""));
-  let cur = 0, playing = true, timer, marks = [], headLen = 0, total = 1, raf = 0;
+  let cur = 0, playing = true, timer, marks = [], headLen = 0, total = 1, raf = 0, seen = false;
   const NS = "http://www.w3.org/2000/svg";
   const mk = (tag, cls) => { const e = document.createElementNS(NS, tag); if (cls) e.setAttribute("class", cls); return e; };
-  const defs = mk("defs"), base = mk("path", "j-base"), flow = mk("path", "j-flow"), prog = mk("path", "j-prog"), head = mk("path", "j-head");
+  const defs = mk("defs"), base = mk("path", "j-base"), flow = mk("path", "j-flow"), glow = mk("path", "j-glow"), prog = mk("path", "j-prog"), head = mk("path", "j-head");
   defs.innerHTML = `<linearGradient id="jg" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="1000" y2="0"><stop offset="0" stop-color="#22d3ee"/><stop offset=".55" stop-color="#8b5cf6"/><stop offset="1" stop-color="#f472b6"/></linearGradient>`;
   head.setAttribute("d", "M0 0 L-15 -7.5 L-11 0 L-15 7.5 Z");
-  svg.append(defs, base, flow, prog, head);
+  svg.append(defs, base, flow, glow, prog, head);
 
   // one continuous path through the stage centres; when the grid wraps, it loops out to the right,
   // runs back below the labels and enters the next row from the left, so it reads like a snake
@@ -308,7 +424,7 @@ function journey() {
       parts.push(d);
     }
     const full = parts.join("");
-    [base, flow, prog].forEach(p => p.setAttribute("d", full));
+    [base, flow, glow, prog].forEach(p => p.setAttribute("d", full));
     total = base.getTotalLength();
     // arrow tip stops just outside each stage it is heading into
     marks = N.map((n, k) => {
@@ -317,14 +433,14 @@ function journey() {
       return base.getTotalLength() - n.r - 8;
     });
     base.setAttribute("d", full);
-    prog.style.strokeDasharray = `${total} ${total}`;
+    prog.style.strokeDasharray = glow.style.strokeDasharray = `${total} ${total}`;
     place(marks[cur]);
   }
   function place(L) {
     headLen = L;
     const p = base.getPointAtLength(L), q = base.getPointAtLength(Math.max(0, L - 2));
     head.setAttribute("transform", `translate(${p.x} ${p.y}) rotate(${Math.atan2(p.y - q.y, p.x - q.x) * 180 / Math.PI})`);
-    prog.style.strokeDashoffset = total - L;
+    prog.style.strokeDashoffset = glow.style.strokeDashoffset = total - L;
   }
   function glide(to) {
     cancelAnimationFrame(raf);
@@ -344,10 +460,11 @@ function journey() {
     panel.innerHTML = `<h4>${STEPS[i].i} ${STEPS[i].t}</h4><p>${STEPS[i].p}</p>`;
     if (marks.length) glide(marks[i]);
   };
-  const loop = () => { clearInterval(timer); timer = setInterval(() => { if (playing) show((cur + 1) % STEPS.length); }, 3600); };
+  const loop = () => { clearInterval(timer); timer = setInterval(() => { if (playing && seen && !document.hidden) show((cur + 1) % STEPS.length); }, 3600); };
   steps.addEventListener("click", e => { const s = e.target.closest(".jstep"); if (s) { show(+s.dataset.i); loop(); } });
   $("#j-toggle").onclick = e => { playing = !playing; e.target.textContent = playing ? "❚❚ Pause" : "▶ Play"; };
   new ResizeObserver(layout).observe(steps);
+  new IntersectionObserver(es => { seen = es[0].isIntersecting; }).observe(steps);
   show(0); layout(); loop();
 }
 
@@ -583,7 +700,9 @@ function live() {
   };
   box.innerHTML = m.raw.map((n, i) => ({ n, i })).sort((a, b) => (VISIBLE.indexOf(a.n) + 99) % 99 - (VISIBLE.indexOf(b.n) + 99) % 99).map(o => mk(o.n, o.i)).join("");
   vals.Sex = 1;
-  box.addEventListener("input", e => { const n = e.target.dataset.n; if (!n) return; vals[n] = +e.target.value; e.target.nextElementSibling.textContent = fx(vals[n], +e.target.max > 50 ? 0 : 1); update(); });
+  let upQ = false;
+  const later = () => { if (upQ) return; upQ = true; requestAnimationFrame(() => { upQ = false; update(); }); };
+  box.addEventListener("input", e => { const n = e.target.dataset.n; if (!n) return; vals[n] = +e.target.value; e.target.nextElementSibling.textContent = fx(vals[n], +e.target.max > 50 ? 0 : 1); later(); });
   box.addEventListener("click", e => { const b = e.target.closest("[data-s]"); if (!b) return; vals.Sex = +b.dataset.s; $$(".sex-toggle button").forEach(x => x.classList.toggle("active", x === b)); update(); });
   $("#more-toggle").onclick = e => { const h = $$(".more"); const open = h[0].classList.contains("hidden"); h.forEach(x => x.classList.toggle("hidden", !open)); e.target.textContent = open ? "Hide extra parameters" : "Show all CBC parameters"; };
   const pre = [["Typical patient", () => m.raw.forEach((n, i) => vals[n] = m.raw_med[i])], ...m.examples.flatMap(g => g.values.slice(0, 2).map((v, k) => [`${g.label} ${k + 1}`, () => Object.assign(vals, v)]))];
