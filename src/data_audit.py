@@ -96,6 +96,16 @@ def imaging_audit(modality):
     if cache.exists():
         z = np.load(cache)
         X, y = z["X"], z["y"]
+        groups = {}
+        for i, x in enumerate(X):  # exact duplicates after the 100x100 resize the models actually see
+            groups.setdefault(hashlib.md5(x.tobytes()).hexdigest(), []).append(int(y[i]))
+        dg = [v for v in groups.values() if len(v) > 1]
+        mixed = [v for v in dg if len(set(v)) > 1]
+        # in a cross-label group every copy is the same input with two answers, so at least one copy is always wrong
+        wrong = sum(min(v.count(0), v.count(1)) for v in mixed)
+        out["resized_duplicates"] = dict(groups=len(dg), files=int(sum(map(len, dg))), redundant=int(sum(len(v) - 1 for v in dg)),
+                                         cross_label_groups=len(mixed), cross_label_files=int(sum(map(len, mixed))),
+                                         accuracy_ceiling=float(1 - wrong / len(X)))
         H = np.stack([ahash(x) for x in X])
         bits = np.unpackbits(H, axis=1).astype(np.uint8)
         tr, te = next(StratifiedKFold(10, shuffle=True, random_state=SEED).split(X, y))  # fold 0 = the fold imaging.py reports
