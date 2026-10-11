@@ -290,9 +290,25 @@ function arch() {
 }
 
 /* ------------------------------------------------------------ imaging section */
+/* results of `imaging.py --profile paper` (exact published protocol, Paper CNN only) */
+function imagingPaper() {
+  const r = (R.imaging_paper || {})[mod], el = $("#img-paper");
+  el.hidden = !r; if (!r) return;
+  const m = r.models["Paper CNN"], P = R.paper[mod].CNN, sm = r.smote_enn;
+  const td = (k, d = 2) => `<td>${fx(m[k], d)}${r.folds > 1 && m[k + "_std"] != null ? `<em>±${fx(m[k + "_std"], d)}</em>` : ""}${P[k] != null ? `<s>${fx(P[k], d)}</s>` : ""}</td>`;
+  el.innerHTML = `<h3>Paper-exact protocol <small>profile “${r.profile}” · ${r.epochs} epochs · ${r.folds}-fold CV · ${r.device} · paper in grey</small></h3>
+    <p class="note">Same recipe as the paper: SMOTE-ENN applied to all ${(sm.before.covid + sm.before.non_covid).toLocaleString()} images before splitting
+    (COVID ${sm.before.covid.toLocaleString()} / non-COVID ${sm.before.non_covid.toLocaleString()} → ${sm.after.covid.toLocaleString()} / ${sm.after.non_covid.toLocaleString()}),
+    plain 90/10 stratified folds, Adam lr 1e-4, batch 16, fixed epochs, no early stopping. Because synthetic images are made before the split, test folds contain
+    interpolations of training images, so these numbers are optimistic in the same way as the paper's.</p>
+    <div class="table-scroll"><table><thead><tr><th>Model</th><th>Accuracy</th><th>Sens.</th><th>Spec.</th><th>Prec.</th><th>FDR</th><th>AUC</th><th>ms/img</th></tr></thead>
+    <tbody><tr class="best"><td>Paper CNN</td>${td("accuracy")}${td("sensitivity")}${td("specificity")}${td("precision")}${td("fdr")}${td("auc", 4)}${td("ms")}</tr></tbody></table></div>`;
+}
+
 function imaging() {
   const r = IM();
-  if (!r) { $("#img-kpis").innerHTML = `<div class="glass kpi"><small>Pending</small><div class="s">Run imaging.py then export_site.py to populate this section.</div></div>`; return; }
+  imagingPaper();
+  if (!r) { $("#img-kpis").innerHTML = `<div class="glass kpi"><small>Pending</small><div class="s">${(R.imaging_paper || {})[mod] ? "Only the paper-exact run exists for this modality — see “Paper-exact protocol” below." : "Run imaging.py then export_site.py to populate this section."}</div></div>`; return; }
   const ep = r.history.paper.length, epPlus = r.history.plus.length;
   $("#img-note").innerHTML = `<b>How to read these numbers.</b> Run profile “${r.profile}” on ${r.device}: the paper CNN trained ${ep} epochs (paper: 100), CovidNet-Plus ${epPlus}, evaluated on ${r.folds} held-out 10% fold${r.folds > 1 ? "s" : ""} (paper: 10-fold CV), with class-weighted loss instead of SMOTE-ENN synthetic images. The paper's ~99% is therefore <i>not</i> reproduced under this compute budget — the \`full\` profile restores the paper's settings on a GPU.`;
   const M = r.models, P = R.paper[mod], best = IMG_ORDER.reduce((a, k) => (M[k] && (!a || M[k].accuracy > M[a].accuracy) ? k : a), null);
