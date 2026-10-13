@@ -6,6 +6,7 @@ import json
 
 from blood import CBC20, PAPER15, export_forest, features, load
 from config import RESULTS, SITE, ensure_dirs
+from severity_scale import export_scale
 
 # Published numbers: Tables 3-5 of Tungal et al., Health Science Reports 2026;9:e71972
 M = lambda acc, sens, spec, prec, fdr, ms: dict(accuracy=acc, sensitivity=sens, specificity=spec, precision=prec, fdr=fdr, ms=ms)
@@ -52,7 +53,8 @@ def main():
     X = features(d, "clin")
     export_forest(d, X, y, list(X.columns), SITE / "data" / "forest.json")
     (SITE / "data" / "forest.js").write_text("window.FOREST=" + (SITE / "data" / "forest.json").read_text() + ";")
-    print("site/data/results.js and forest.js written")
+    export_scale()  # the live demo's 0-10 severity scale is tied to this exact forest
+    print("site/data/results.js, forest.js and severity.js written")
 
 
 if __name__ == "__main__":
