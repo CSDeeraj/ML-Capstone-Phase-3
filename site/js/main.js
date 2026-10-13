@@ -912,6 +912,8 @@ const stMain = I => (stModels(I).includes("CovidNet-Plus") ? "CovidNet-Plus" : s
 const stCase = (I, re) => I.cases.find(c => re.test(c.name));
 const balAcc = r => (r.sensitivity + r.specificity) / 2;
 const asPct = v => (v != null && v <= 1 ? 100 * v : v);
+// share of the larger class, i.e. the accuracy of always guessing it (from the clean case's sensitivity/specificity)
+const stMaj = I => { const r = (stCase(I, /^Clean/) || I.cases[0])[stMain(I)], q = r.sensitivity === r.specificity ? .5 : (r.accuracy - r.specificity) / (r.sensitivity - r.specificity); return 100 * Math.max(q, 1 - q); };
 const axMin = (vals, cap, step = 10) => Math.min(cap, Math.floor(Math.min(...vals.filter(v => v != null)) / step) * step);
 const stLvl = (k, v) => k === "Gaussian noise" ? `σ ${v}` : k === "Blur" ? `${v} px` : k === "Rotation" ? `${v}°` : `${v} px`;
 const stDesc = (k, v) => !v ? "Clean" : k === "Gaussian noise" ? `Noise σ = ${v}` : k === "Blur" ? `Blur, radius ${v} px` : k === "Rotation" ? `Tilted ${v}°` : `${v} × ${v} px block`;
@@ -973,12 +975,12 @@ function stress() {
 
   // KPIs
   const clean = stCase(I, /^Clean/), lungs = stCase(I, /Lungs blacked/), border = stCase(I, /Border removed/);
-  const D = I.duplicates || {}, ns = (D[main] || {}).never_seen, cf = (I.confidence || {})[main];
+  const D = I.duplicates || {}, ns = (D[main] || {}).never_seen, cf = (I.confidence || {})[main], maj = stMaj(I);
   const k = (l, v, dec, suf, sub, cls = "grad") => `<div class="glass kpi reveal"><small>${l}</small><div class="v ${cls}" data-to="${v}" data-dec="${dec}" data-suf="${suf}">${fx(v, dec)}${suf}</div><div class="s">${sub}</div></div>`;
   $("#st-kpis").innerHTML =
     (clean ? k("Clean scans", clean[main].accuracy, 1, "%", `${main} accuracy${other ? ` · ${other} ${fx(clean[other].accuracy, 1)}%` : ""}`) : "") +
     (ns ? k("Never seen in any form", ns.accuracy, 1, "%", `on the ${D.test_without_copy} test scans with no identical copy in training`) : "") +
-    (lungs ? k("Lungs blacked out", balAcc(lungs[main]), 1, "%", `${main}, balanced accuracy · AUC ${fx(lungs[main].auc, 2)} · ${balAcc(lungs[main]) <= 60 ? "a coin toss, so it needs the lungs" : balAcc(lungs[main]) <= 75 ? "above a coin toss: some signal comes from outside the box" : stMod === "ct" ? "well above a coin toss: a shortcut risk, partly because CT lungs reach past the box" : "well above a coin toss: shortcut warning"}`, balAcc(lungs[main]) <= 65 ? "ok" : "warn") : "") +
+    (lungs ? k("Lungs blacked out", lungs[main].accuracy, 1, "%", `${main} accuracy · always guessing the larger class scores ${fx(maj, 1)}% · balanced ${fx(balAcc(lungs[main]), 1)}%, AUC ${fx(lungs[main].auc, 2)} · ${balAcc(lungs[main]) <= 60 ? "no better than that guess, so it needs the lungs" : balAcc(lungs[main]) <= 75 ? "above that guess: some signal comes from outside the box" : stMod === "ct" ? "well above that guess: a shortcut risk, partly because CT lungs reach past the box" : "well above that guess: shortcut warning"}`, balAcc(lungs[main]) <= 65 ? "ok" : "warn") : "") +
     (cf ? k("Confident mistakes", cf.confident_errors, 0, "", `of ${cf.errors} errors were made with more than 90% confidence`) : "");
   watchCounts($("#st-kpis"));
 
@@ -1053,23 +1055,23 @@ function stDial() {
 function stTrio(I, main, clean, lungs, border) {
   const tile = (kind, title, r, line) => `<figure class="st-tile">${stSrc ? `<canvas width="100" height="100" data-kind="${kind}"></canvas>` : ""}<figcaption><b>${title}</b>${r ? `<span>${line}</span>` : "<span>not run</span>"}</figcaption></figure>`;
   $("#st-trio").innerHTML = tile("clean", "Full scan", clean, clean && `${fx(clean[main].accuracy, 1)}% accuracy`) +
-    tile("lungs", "Lungs blacked out", lungs, lungs && `${fx(balAcc(lungs[main]), 1)}% balanced`) +
+    tile("lungs", "Lungs blacked out", lungs, lungs && `${fx(lungs[main].accuracy, 1)}% accuracy`) +
     tile("border", "Only the lung box", border, border && `${fx(border[main].accuracy, 1)}% accuracy`);
   if (stSrc) $$("#st-trio canvas").forEach(cv => stDraw(cv, cv.dataset.kind, 1));
-  const out = [], names = stModels(I);
+  const out = [], names = stModels(I), maj = fx(stMaj(I), 1);
   const call = r => (r.sensitivity < 10 ? "non-COVID" : r.specificity < 10 ? "COVID" : "");
   const same = lungs && names.length > 1 && names.every(n => balAcc(lungs[n]) <= 60 && call(lungs[n]) && call(lungs[n]) === call(lungs[names[0]]));
   if (same) {
-    out.push(`With the lungs hidden, both models call almost every scan ${call(lungs[names[0]])} (${names.map(n => fx(balAcc(lungs[n]), 1) + "%").join(" and ")} balanced accuracy, a coin toss), so neither can decide without the lungs.`);
+    out.push(`With the lungs hidden, both models call almost every scan ${call(lungs[names[0]])} (${names.map(n => fx(lungs[n].accuracy, 1) + "%").join(" and ")} accuracy, about the ${maj}% that always guessing the larger class scores; ${names.map(n => fx(balAcc(lungs[n]), 1) + "%").join(" and ")} balanced), so neither can decide without the lungs.`);
     const weak = names.filter(n => lungs[n].auc >= .7);
     if (weak.length) out.push(`${weak.map(n => `<b>${n}</b>`).join(" and ")} still rank${weak.length > 1 ? "" : "s"} scans a little (AUC ${weak.map(n => fx(lungs[n].auc, 2)).join(", ")}), so a weak cue survives outside the box.`);
   }
   if (lungs && !same) names.forEach(n => {
     const r = lungs[n], b = balAcc(r), all1 = call(r);
-    if (b <= 60) out.push(`<b>${n}</b> ${all1 ? `calls almost every scan ${all1}` : "falls to a coin toss"} once the lungs are hidden (${fx(b, 1)}% balanced accuracy), so it cannot decide without them.` +
+    if (b <= 60) out.push(`<b>${n}</b> ${all1 ? `calls almost every scan ${all1}` : "falls to a coin toss"} once the lungs are hidden (${fx(r.accuracy, 1)}% accuracy, about the ${maj}% from always guessing the larger class; ${fx(b, 1)}% balanced), so it cannot decide without them.` +
       (r.auc >= .7 ? ` Its scores still rank scans a little (AUC ${fx(r.auc, 2)}), so a weak cue survives outside the box.` : ""));
-    else if (b <= 75) out.push(`<b>${n}</b> keeps some signal with the lungs hidden (${fx(b, 1)}% balanced accuracy), so part of its decision comes from outside the box.`);
-    else out.push(`<b>${n}</b> still reaches ${fx(b, 1)}% balanced accuracy (AUC ${fx(r.auc, 2)}) with the centre blacked out. ` +
+    else if (b <= 75) out.push(`<b>${n}</b> keeps some signal with the lungs hidden (${fx(r.accuracy, 1)}% accuracy against ${maj}% for always guessing the larger class; ${fx(b, 1)}% balanced), so part of its decision comes from outside the box.`);
+    else out.push(`<b>${n}</b> still reaches ${fx(r.accuracy, 1)}% accuracy with the centre blacked out, well above the ${maj}% from always guessing the larger class (${fx(b, 1)}% balanced, AUC ${fx(r.auc, 2)}). ` +
       (stMod === "ct" ? "CT slices show the lungs reaching past that box, so some lung tissue stays visible, but this is still a shortcut risk and we flag it openly." : "That is a shortcut warning: it is reading something other than the lungs."));
   });
   if (border && clean) {
