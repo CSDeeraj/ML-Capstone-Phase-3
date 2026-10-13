@@ -511,7 +511,7 @@ function imaging() {
   const ep = r.history.paper.length, epPlus = r.history.plus.length;
   const ipm = (R.imaging_paper || {})[mod], ipx = ipm && ipm.models["Paper CNN"];
   $("#img-note").innerHTML = `<b>How to read these numbers.</b> The charts compare eight models from the “${r.profile}” run: the paper CNN for ${ep} epochs and CovidNet-Plus for ${epPlus}, on ${r.folds} held-out 10% fold${r.folds > 1 ? "s" : ""}, with class-weighted loss instead of synthetic images.` +
-    (ipx ? ` The paper CNN was also re-run with the paper's exact protocol (100 epochs, 10 folds, SMOTE-ENN): <b>${fx(ipx.accuracy)}% ± ${fx(ipx.accuracy_std)}</b> against the paper's ${fx(R.paper[mod].CNN.accuracy)}%. That run is in the table at the end of this section, and <a href="#numbers" style="color:var(--cyan)">section 09</a> explains the gap.` : "");
+    (ipx ? ` The paper CNN was also re-run with the paper's exact protocol (100 epochs, 10 folds, SMOTE-ENN): <b>${fx(ipx.accuracy)}% ± ${fx(ipx.accuracy_std)}</b> against the paper's ${fx(R.paper[mod].CNN.accuracy)}%. That run is in the table at the end of this section, and <a href="#numbers" style="color:var(--cyan)">section 10</a> explains the gap.` : "");
   const M = r.models, P = R.paper[mod], best = IMG_ORDER.reduce((a, k) => (M[k] && (!a || M[k].accuracy > M[a].accuracy) ? k : a), null);
   const d = M[best].accuracy - M["Paper CNN"].accuracy;
   $("#img-kpis").innerHTML = [
@@ -807,7 +807,7 @@ const GAPS = [
   { g: "Grad-CAM shown on chosen successes only", e: "COVID X-ray models are known to learn shortcuts (DeGrave 2021; Maguolo & Nanni 2021).", a: () => "Grad-CAM++ beside Grad-CAM, a real failure case, lung-masking shortcut test and corruption tests." },
   { g: "No subgroup analysis", e: "Performance by age or sex is not reported.", a: () => "Subgroup AUC with patient-bootstrap 95% CIs (T3)." },
   { g: "Compact model, no improvement path", e: "Residual links, attention, augmentation and calibration are cheap but unexplored.", a: () => "CovidNet-Plus: still >10× smaller than MobileNet, better AUC and calibration." },
-  { g: "Unified lab described, not demonstrated", e: "Figure 1 is a diagram.", a: () => "Browser triage simulator runs imaging + blood models on real held-out cases (section 11)." },
+  { g: "Unified lab described, not demonstrated", e: "Figure 1 is a diagram.", a: () => "Browser triage simulator runs imaging + blood models on real held-out cases (section 12)." },
 ];
 const FUTURE = [
   "External validation on a second hospital's blood data and a different X-ray source, to measure the drop warned about by Cabitza et al. and Roberts et al.",
@@ -862,15 +862,15 @@ function audit() {
   const IA = (R.audit || {}).imaging || {};
   const ks = Object.keys(IA);
   $("#img-audit").innerHTML = `<h3>Image audit <small>formats, resolutions, duplicates, near-duplicates across the split</small></h3>` + (ks.length ?
-    `<div class="table-scroll"><table class="lit"><thead><tr><th>Modality</th><th>Files</th><th>Colour modes</th><th>Width (min–max)</th><th>Non-square</th><th>Exact duplicates</th><th>Across classes</th><th>Test scans with near-duplicate in train</th></tr></thead><tbody>` +
-    ks.map(k => { const v = IA[k], nd = v.near_duplicate_test_in_train; return `<tr><td>${k}</td><td>${v.files}</td><td>${Object.entries(v.modes).map(([m, n]) => m + " " + n).join(", ")}</td><td>${v.width.min}–${v.width.max}</td><td>${v.aspect_not_square}</td><td>${v.exact_duplicates.extra_files}</td><td>${v.exact_duplicates.cross_class}</td><td>${nd ? nd.with_near_duplicate_in_train + " / " + nd.test_images + " (" + fx(100 * nd.share, 1) + "%)" : "–"}</td></tr>`; }).join("") + "</tbody></table></div>"
+    `<div class="table-scroll"><table class="lit"><thead><tr><th>Modality</th><th>Files</th><th>Colour modes</th><th>Width (min–max)</th><th>Non-square</th><th>Exact duplicates</th><th>Across classes</th><th>Identical after resizing to 100 px</th><th>…carrying both labels</th><th>Accuracy ceiling</th><th>Test scans with near-duplicate in train</th></tr></thead><tbody>` +
+    ks.map(k => { const v = IA[k], nd = v.near_duplicate_test_in_train; return `<tr><td>${k}</td><td>${v.files}</td><td>${Object.entries(v.modes).map(([m, n]) => m + " " + n).join(", ")}</td><td>${v.width.min}–${v.width.max}</td><td>${v.aspect_not_square}</td><td>${v.exact_duplicates.extra_files}</td><td>${v.exact_duplicates.cross_class}</td>${(rd => rd ? `<td>${rd.groups} groups, ${rd.files} files</td><td>${rd.cross_label_groups} group${rd.cross_label_groups === 1 ? "" : "s"}, ${rd.cross_label_files} files</td><td>${fx(asPct(rd.accuracy_ceiling), 2)}%</td>` : "<td>–</td><td>–</td><td>–</td>")(v.resized_duplicates)}<td>${nd ? nd.with_near_duplicate_in_train + " / " + nd.test_images + " (" + fx(100 * nd.share, 1) + "%)" : "–"}</td></tr>`; }).join("") + "</tbody></table></div>"
     : `<p class="note">Pending: run <code>python src/data_audit.py</code> on the machine that holds the images.</p>`);
 }
 
 /* ------------------------------------------------------------ test cases */
 function testCases() {
   const T = R.tests;
-  if (!T || !T.unseen_patients) { $("#tc-note").innerHTML = "<b>Pending:</b> run <code>python src/test_cases.py</code> to fill this section."; imagingTests("xray"); return; }
+  if (!T || !T.unseen_patients) { $("#tc-note").innerHTML = "<b>Pending:</b> run <code>python src/test_cases.py</code> to fill this section."; return; }
   const u = T.unseen_patients, t = T.temporal, n10 = T.noise.find(x => x.sigma === 10);
   const adm = (T.subgroups || []).find(s => /First visit/.test(s.name));
   $("#tc-note").innerHTML = `Model: <b>${T.model}</b>, ${T.trials} Optuna trials per model, ${T.folds} patient-grouped folds (${T.profile} profile).` +
@@ -898,15 +898,206 @@ function testCases() {
   $("#tc-mort").innerHTML = `<div class="big grad">${fx(D.flagged_severe, 0)}%</div><p>of the <b>${D.deaths}</b> visits from patients who died were flagged severe.</p><p>Severity score separates deaths from survivors with AUC <b>${fx(D.auc_all_rows, 3)}</b>, but only <b>${fx(D.auc_within_severe, 3)}</b> among severe visits, so it does not rank death risk within severe patients. The model was never trained on death.</p>`;
   $("#tc-ops").innerHTML = `<thead><tr><th>Operating point</th><th>Threshold</th><th>Sensitivity</th><th>Specificity</th><th>PPV</th><th>NPV</th><th>Bal. acc.</th></tr></thead><tbody>` +
     T.operating_points.map(o => `<tr><td>${o.name}</td><td>${fx(o.threshold_mean, 2)}</td><td>${fx(o.sensitivity, 1)}</td><td>${fx(o.specificity, 1)}</td><td>${fx(o.ppv, 1)}</td><td>${fx(o.npv, 1)}</td><td>${fx(o.balanced_accuracy, 1)}</td></tr>`).join("") + "</tbody>";
-  imagingTests("xray");
 }
-function imagingTests(m) {
-  const I = ((R.imaging_tests || {})[m]);
-  if (!I) { $("#it-body").innerHTML = `<p class="note">Pending: run <code>python src/imaging_tests.py --modality ${m}</code> on the PC with the images, then <code>python src/export_site.py</code>.</p>`; return; }
-  const names = Object.keys(I.cases[0]).filter(k => k !== "name" && k !== "kind");
-  $("#it-body").innerHTML = `<div class="chart-box"><canvas id="ch-it"></canvas></div><p class="note" style="margin-top:12px">Shortcut test: with the lungs blacked out a sound model should fall towards 50%. If accuracy stays high, it is reading something other than the lungs.</p>`;
-  chart("ch-it", { type: "bar", data: { labels: I.cases.map(c => c.name), datasets: names.map((n, i) => ({ label: n, data: I.cases.map(c => c[n].accuracy), backgroundColor: [C.grey, C.cyan][i % 2], borderRadius: 6 })) },
-    options: { maintainAspectRatio: false, scales: { y: { min: 40, max: 100, title: { display: true, text: `accuracy % (${I.test_images} held-out scans)` } } }, plugins: { legend: { position: "bottom" } } } });
+/* ------------------------------------------------------------ image stress lab */
+// Numbers come from src/imaging_tests.py. The sample scan is corrupted live in the browser with the same
+// operations (noise, Gaussian blur, rotation, a black square, the lung box blacked out), so every score
+// sits next to a picture of what the model was shown.
+const ST_NAME = { "Gaussian noise": "Noise", Blur: "Blur", Rotation: "Rotation", Occlusion: "Cut-out" };
+const ST_COL = { "Paper CNN": C.violet, "CovidNet-Plus": C.cyan };
+let stMod = "xray", stKind = "Gaussian noise", stLevel = 0, stPlay = !reduce, stSeen = false, stSrc = null, stChartKey = "";
+const stData = () => (R.imaging_tests || {})[stMod];
+const stModels = I => I.models || Object.keys(I.cases[0]).filter(k => k !== "name" && k !== "kind");
+const stMain = I => (stModels(I).includes("CovidNet-Plus") ? "CovidNet-Plus" : stModels(I)[0]);
+const stCase = (I, re) => I.cases.find(c => re.test(c.name));
+const balAcc = r => (r.sensitivity + r.specificity) / 2;
+const asPct = v => (v != null && v <= 1 ? 100 * v : v);
+const axMin = (vals, cap, step = 10) => Math.min(cap, Math.floor(Math.min(...vals.filter(v => v != null)) / step) * step);
+const stLvl = (k, v) => k === "Gaussian noise" ? `σ ${v}` : k === "Blur" ? `${v} px` : k === "Rotation" ? `${v}°` : `${v} px`;
+const stDesc = (k, v) => !v ? "Clean" : k === "Gaussian noise" ? `Noise σ = ${v}` : k === "Blur" ? `Blur, radius ${v} px` : k === "Rotation" ? `Tilted ${v}°` : `${v} × ${v} px block`;
+
+function stRng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function stDraw(cv, kind, v) {
+  const cx = cv.getContext("2d", { willReadFrequently: true }), S = 100, rnd = stRng(7 + Math.round(v * 100));
+  const base = blur => {
+    cx.save(); cx.fillStyle = "#000"; cx.fillRect(0, 0, S, S);
+    if (kind === "Rotation" && v) { cx.translate(S / 2, S / 2); cx.rotate(-v * Math.PI / 180); cx.translate(-S / 2, -S / 2); }  // PIL turns counter-clockwise
+    if (blur) cx.filter = `blur(${blur}px)`;
+    cx.drawImage(stSrc, 0, 0, S, S); cx.restore();
+  };
+  base(0);
+  cx.fillStyle = "#000";
+  if (kind === "Occlusion" && v) { const r0 = Math.floor(rnd() * (S - v + 1)), c0 = Math.floor(rnd() * (S - v + 1)); cx.fillRect(c0, r0, v, v); return; }
+  if (kind === "lungs") { cx.fillRect(20, 20, 60, 60); return; }
+  if (kind === "border") { cx.fillRect(0, 0, S, 20); cx.fillRect(0, 80, S, 20); cx.fillRect(0, 20, 20, 60); cx.fillRect(80, 20, 20, 60); return; }
+  if (!v || (kind !== "Gaussian noise" && kind !== "Blur")) return;
+  let im;
+  try { im = cx.getImageData(0, 0, S, S); } catch (e) { im = null; }         // pages opened from file:// can't read pixels back
+  const gauss = () => Math.sqrt(-2 * Math.log(rnd() || 1e-9)) * Math.cos(2 * Math.PI * rnd());
+  if (kind === "Gaussian noise") {
+    if (im) { const d = im.data; for (let i = 0; i < d.length; i += 4) for (let c = 0; c < 3; c++) d[i + c] = d[i + c] + 255 * v * gauss(); cx.putImageData(im, 0, 0); return; }
+    const t = document.createElement("canvas"); t.width = t.height = S;
+    const tc = t.getContext("2d"), nz = tc.createImageData(S, S);
+    for (let i = 0; i < nz.data.length; i += 4) { for (let c = 0; c < 3; c++) nz.data[i + c] = 128 + 255 * v * gauss(); nz.data[i + 3] = 255; }
+    tc.putImageData(nz, 0, 0);
+    cx.save(); cx.globalCompositeOperation = "overlay"; cx.drawImage(t, 0, 0); cx.restore();
+    return;
+  }
+  if (!im) return base(v);
+  const d = im.data, r = Math.ceil(3 * v), w = [];
+  for (let k = -r; k <= r; k++) w.push(Math.exp(-k * k / (2 * v * v)));
+  const sum = w.reduce((a, b) => a + b, 0), tmp = new Float32Array(S * S * 3);
+  for (let pass = 0; pass < 2; pass++) for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) for (let c = 0; c < 3; c++) {
+    let acc = 0;
+    for (let k = -r; k <= r; k++) {
+      const xx = pass ? x : Math.min(S - 1, Math.max(0, x + k)), yy = pass ? Math.min(S - 1, Math.max(0, y + k)) : y;
+      acc += w[k + r] * (pass ? tmp[(yy * S + xx) * 3 + c] : d[(yy * S + xx) * 4 + c]);
+    }
+    if (pass) d[(y * S + x) * 4 + c] = acc / sum; else tmp[(y * S + x) * 3 + c] = acc / sum;
+  }
+  cx.putImageData(im, 0, 0);
+}
+
+function stress() {
+  const I = stData(), body = $("#st-body"), mk = { xray: "X-ray", ct: "CT" }[stMod];
+  if (!I || !I.cases || !I.cases.length) {
+    body.style.display = "none";
+    $("#st-note").innerHTML = `<b>Pending:</b> the ${mk} stress tests are running on the PC (<code>python src/imaging_tests.py --modality ${stMod}</code>, then <code>python src/export_site.py</code>).`;
+    return;
+  }
+  body.style.display = "";
+  const names = stModels(I), main = stMain(I), other = names.find(n => n !== main);
+  const gal = ((R.gallery || {})[stMod] || [])[0];
+  $("#st-note").innerHTML = `Models: the fold-0 ${names.join(" and ")} saved by the quick/full training profile, tested on that fold's <b>${I.test_images}</b> held-out ${mk} scans. These are not the 10-fold paper-protocol runs from section 05.` +
+    (gal ? " The scan below is a real held-out image, put through the same corruptions live in your browser." : "");
+
+  // KPIs
+  const clean = stCase(I, /^Clean/), lungs = stCase(I, /Lungs blacked/), border = stCase(I, /Border removed/);
+  const D = I.duplicates || {}, ns = (D[main] || {}).never_seen, cf = (I.confidence || {})[main];
+  const k = (l, v, dec, suf, sub, cls = "grad") => `<div class="glass kpi reveal"><small>${l}</small><div class="v ${cls}" data-to="${v}" data-dec="${dec}" data-suf="${suf}">${fx(v, dec)}${suf}</div><div class="s">${sub}</div></div>`;
+  $("#st-kpis").innerHTML =
+    (clean ? k("Clean scans", clean[main].accuracy, 1, "%", `${main} accuracy${other ? ` · ${other} ${fx(clean[other].accuracy, 1)}%` : ""}`) : "") +
+    (ns ? k("Never seen in any form", ns.accuracy, 1, "%", `on the ${D.test_without_copy} test scans with no identical copy in training`) : "") +
+    (lungs ? k("Lungs blacked out", balAcc(lungs[main]), 1, "%", `${main}, balanced accuracy · AUC ${fx(lungs[main].auc, 2)} · ${balAcc(lungs[main]) <= 60 ? "a coin toss, so it needs the lungs" : balAcc(lungs[main]) <= 75 ? "above a coin toss: some signal comes from outside the box" : stMod === "ct" ? "well above a coin toss: a shortcut risk, partly because CT lungs reach past the box" : "well above a coin toss: shortcut warning"}`, balAcc(lungs[main]) <= 65 ? "ok" : "warn") : "") +
+    (cf ? k("Confident mistakes", cf.confident_errors, 0, "", `of ${cf.errors} errors were made with more than 90% confidence`) : "");
+  watchCounts($("#st-kpis"));
+
+  // stress dial
+  const SW = I.sweeps || {}, kinds = Object.keys(SW).filter(x => SW[x] && SW[x].levels);
+  const panel = $(".stress");
+  panel.style.display = kinds.length ? "" : "none";
+  $("#st-view").style.display = gal ? "" : "none";
+  panel.classList.toggle("no-img", !gal);
+  if (kinds.length) {
+    if (!kinds.includes(stKind)) stKind = kinds[0];
+    $("#st-kind").innerHTML = kinds.map(x => `<button data-k="${x}" class="${x === stKind ? "active" : ""}">${ST_NAME[x] || x}</button>`).join("");
+    const load = () => { stDial(); stTrio(I, main, clean, lungs, border); };
+    if (gal) {
+      stSrc = new Image(); stSrc.onload = load;
+      stSrc.onerror = () => { stSrc = null; $("#st-view").style.display = "none"; panel.classList.add("no-img"); load(); };
+      stSrc.src = `assets/gradcam/${gal.id}_orig.jpg`;
+    } else { stSrc = null; load(); }
+  } else stTrio(I, main, clean, lungs, border);
+
+  // every case
+  const cs = I.cases;
+  chart("ch-st-cases", { type: "bar", data: { labels: cs.map(c => (c.kind === "shortcut" ? "⚠ " : "") + (innerWidth < 600 ? c.name.replace(/\s*\(.*\)$/, "") : c.name)), datasets: names.map(n => ({ label: n, data: cs.map(c => c[n].accuracy),
+      backgroundColor: cs.map(c => (ST_COL[n] || C.grey) + (c.kind === "shortcut" ? "77" : "")), borderRadius: 5, barPercentage: .9, categoryPercentage: .8 })) },
+    options: { indexAxis: "y", maintainAspectRatio: false, scales: { x: { min: axMin(cs.flatMap(c => names.map(n => c[n].accuracy)), 30), max: 100, title: { display: true, text: `accuracy % on ${I.test_images} held-out scans` } }, y: { ticks: { autoSkip: false, font: { size: 11 } } } },
+      plugins: { legend: { position: "bottom" }, tooltip: { callbacks: { afterLabel: c => { const r = cs[c.dataIndex][c.dataset.label]; return `sens ${fx(r.sensitivity, 1)}% · spec ${fx(r.specificity, 1)}% · AUC ${fx(r.auc, 3)}`; } } } } } });
+
+  // never-seen scans
+  const parts = [["all", `All test scans (${I.test_images})`], ["with_copy_in_train", `Copy in training (${D.test_with_copy_in_train ?? "–"})`], ["never_seen", `Never seen (${D.test_without_copy ?? "–"})`]];
+  const have = parts.filter(([key]) => names.some(n => (D[n] || {})[key]));
+  chart("ch-st-dup", { type: "bar", data: { labels: have.map(p => p[1]), datasets: names.map(n => ({ label: n, data: have.map(([key]) => ((D[n] || {})[key] || {}).accuracy ?? null), backgroundColor: ST_COL[n] || C.grey, borderRadius: 6 })) },
+    options: { maintainAspectRatio: false, scales: { y: { min: axMin(have.flatMap(([key]) => names.map(n => ((D[n] || {})[key] || {}).accuracy)), 80, 5), max: 100, title: { display: true, text: "accuracy %" } } }, plugins: { legend: { position: "bottom" } } } });
+  const all = (D[main] || {}).all, A = ((R.audit || {}).imaging || {})[mk] || {}, rd = A.resized_duplicates;
+  $("#st-dup-note").innerHTML = (D.test_with_copy_in_train != null ? `<b>${D.test_with_copy_in_train}</b> of the ${I.test_images} test scans have an identical copy (after shrinking to 100 px) in the training set. ` : "") +
+    (ns && all ? `On the ${D.test_without_copy} scans it has never seen, ${main} scores <b>${fx(ns.accuracy, 1)}%</b> against ${fx(all.accuracy, 1)}% overall, so ${ns.accuracy >= all.accuracy - .5 ? "the duplicates do not inflate its score" : `the duplicates inflate its score by ${fx(all.accuracy - ns.accuracy, 1)} points`}. ` : "") +
+    (rd ? `Across the whole ${mk} set, ${rd.cross_label_groups === 1 ? "one group" : rd.cross_label_groups + " groups"} of identical scans ${rd.cross_label_groups === 1 ? "carries" : "carry"} both labels, which caps any model at <b>${fx(asPct(rd.accuracy_ceiling), 2)}%</b>.` : "");
+
+  // confidence
+  const bar = (w, col) => `<div class="bar"><i data-w="${w}" style="background:${col}"></i></div>`;
+  $("#st-conf").innerHTML = `<p class="st-foot" style="margin:0 0 14px">A screening tool is safest when its mistakes come with low confidence, so a doctor knows to look twice.</p>` + names.filter(n => (I.confidence || {})[n]).map(n => {
+    const c = I.confidence[n], r = 100 * c.mean_confidence_correct, w = c.mean_confidence_wrong == null ? null : 100 * c.mean_confidence_wrong;
+    return `<div class="cf"><b style="color:${ST_COL[n] || C.grey}">${n}</b><div class="cf-bars"><span>Sure when right</span>${bar(r, C.green)}<em>${fx(r, 0)}%</em>` +
+      (w == null ? "" : `<span>Sure when wrong</span>${bar(w, C.amber)}<em>${fx(w, 0)}%</em>`) + `</div>` +
+      `<p>${c.errors} errors, <b>${c.confident_errors}</b> of them over 90% sure · calibration error (ECE) ${fx(c.ece, 3)}</p></div>`;
+  }).join("");
+  const bo = new IntersectionObserver((es, o) => { if (es[0].isIntersecting) { $$("#st-conf .bar i").forEach(i => i.style.width = i.dataset.w + "%"); o.disconnect(); } }, { threshold: .3 });
+  bo.observe($("#st-conf"));
+  observeReveals();
+}
+function stDial() {
+  const I = stData(), sw = I.sweeps[stKind], names = stModels(I);
+  stLevel = Math.min(stLevel, sw.levels.length - 1);
+  $$("#st-kind button").forEach(b => b.classList.toggle("active", b.dataset.k === stKind));
+  $("#st-level").max = sw.levels.length - 1; $("#st-level").value = stLevel;
+  $("#st-ticks").innerHTML = sw.levels.map((v, i) => `<span class="${i === stLevel ? "on" : ""}">${i ? stLvl(stKind, v) : "clean"}</span>`).join("");
+  const last = sw.levels.length - 1, loss = names.map(n => sw[n][0] - sw[n][last]), lo = loss.indexOf(Math.max(...loss)), hi = loss.indexOf(Math.min(...loss));
+  $("#st-take").innerHTML = names.length > 1 ? `At the strongest setting (${stLvl(stKind, sw.levels[last])}) <b style="color:${ST_COL[names[lo]] || C.grey}">${names[lo]}</b> loses ${fx(loss[lo], 1)} points and <b style="color:${ST_COL[names[hi]] || C.grey}">${names[hi]}</b> ${fx(loss[hi], 1)}.` +
+    (loss[lo] > 2 * Math.max(loss[hi], 1) && loss[lo] > 10 ? ` ${names[lo]} is far more fragile to ${(ST_NAME[stKind] || stKind).toLowerCase()}.` : "") : "";
+  if (stSrc) { stDraw($("#st-img"), stKind, sw.levels[stLevel]); $("#st-cap-t").textContent = stDesc(stKind, sw.levels[stLevel]); }
+  $("#st-read").innerHTML = names.map(n => {
+    const a = sw[n][stLevel], d = a - sw[n][0];
+    return `<div><small style="color:${ST_COL[n] || C.grey}">${n}</small><b>${fx(a, 1)}%</b><em class="${d < -10 ? "bad" : d < -3 ? "mid" : ""}">${stLevel ? (d >= 0 ? "+" : "−") + fx(Math.abs(d), 1) + " pts" : "baseline"}</em></div>`;
+  }).join("");
+  // same sweep: just move the highlighted point (the chart may still be waiting to scroll into view)
+  if (stChartKey === stKind + stMod) { if (charts["ch-st-sweep"]) charts["ch-st-sweep"].update("none"); return; }
+  stChartKey = stKind + stMod;
+  chart("ch-st-sweep", { type: "line", data: { labels: sw.levels.map((v, i) => i ? stLvl(stKind, v) : "clean"), datasets: [...names.map(n => ({ label: n, data: sw[n], borderColor: ST_COL[n] || C.grey, backgroundColor: ST_COL[n] || C.grey, tension: .3,
+      pointRadius: c => c.dataIndex === stLevel ? 7 : 3, pointBorderColor: "#fff", pointBorderWidth: c => c.dataIndex === stLevel ? 2 : 0 })),
+      { label: "coin toss", data: sw.levels.map(() => 50), borderColor: "rgba(255,255,255,.28)", borderDash: [5, 5], borderWidth: 1.5, pointRadius: 0 }] },
+    options: { maintainAspectRatio: false, scales: { y: { min: axMin(names.flatMap(n => sw[n]), 40), max: 100, title: { display: true, text: "accuracy %" } }, x: { title: { display: true, text: sw.unit } } }, plugins: { legend: { position: "bottom", labels: { filter: l => l.text !== "coin toss" } } } } });
+}
+function stTrio(I, main, clean, lungs, border) {
+  const tile = (kind, title, r, line) => `<figure class="st-tile">${stSrc ? `<canvas width="100" height="100" data-kind="${kind}"></canvas>` : ""}<figcaption><b>${title}</b>${r ? `<span>${line}</span>` : "<span>not run</span>"}</figcaption></figure>`;
+  $("#st-trio").innerHTML = tile("clean", "Full scan", clean, clean && `${fx(clean[main].accuracy, 1)}% accuracy`) +
+    tile("lungs", "Lungs blacked out", lungs, lungs && `${fx(balAcc(lungs[main]), 1)}% balanced`) +
+    tile("border", "Only the lung box", border, border && `${fx(border[main].accuracy, 1)}% accuracy`);
+  if (stSrc) $$("#st-trio canvas").forEach(cv => stDraw(cv, cv.dataset.kind, 1));
+  const out = [], names = stModels(I);
+  const call = r => (r.sensitivity < 10 ? "non-COVID" : r.specificity < 10 ? "COVID" : "");
+  const same = lungs && names.length > 1 && names.every(n => balAcc(lungs[n]) <= 60 && call(lungs[n]) && call(lungs[n]) === call(lungs[names[0]]));
+  if (same) {
+    out.push(`With the lungs hidden, both models call almost every scan ${call(lungs[names[0]])} (${names.map(n => fx(balAcc(lungs[n]), 1) + "%").join(" and ")} balanced accuracy, a coin toss), so neither can decide without the lungs.`);
+    const weak = names.filter(n => lungs[n].auc >= .7);
+    if (weak.length) out.push(`${weak.map(n => `<b>${n}</b>`).join(" and ")} still rank${weak.length > 1 ? "" : "s"} scans a little (AUC ${weak.map(n => fx(lungs[n].auc, 2)).join(", ")}), so a weak cue survives outside the box.`);
+  }
+  if (lungs && !same) names.forEach(n => {
+    const r = lungs[n], b = balAcc(r), all1 = call(r);
+    if (b <= 60) out.push(`<b>${n}</b> ${all1 ? `calls almost every scan ${all1}` : "falls to a coin toss"} once the lungs are hidden (${fx(b, 1)}% balanced accuracy), so it cannot decide without them.` +
+      (r.auc >= .7 ? ` Its scores still rank scans a little (AUC ${fx(r.auc, 2)}), so a weak cue survives outside the box.` : ""));
+    else if (b <= 75) out.push(`<b>${n}</b> keeps some signal with the lungs hidden (${fx(b, 1)}% balanced accuracy), so part of its decision comes from outside the box.`);
+    else out.push(`<b>${n}</b> still reaches ${fx(b, 1)}% balanced accuracy (AUC ${fx(r.auc, 2)}) with the centre blacked out. ` +
+      (stMod === "ct" ? "CT slices show the lungs reaching past that box, so some lung tissue stays visible, but this is still a shortcut risk and we flag it openly." : "That is a shortcut warning: it is reading something other than the lungs."));
+  });
+  if (border && clean) {
+    const drops = names.map(n => clean[n].accuracy - border[n].accuracy);
+    if (drops.every(d => d > 20)) out.push(`Keeping only the central box breaks ${names.length > 1 ? "both models" : names[0]} too (${names.map(n => fx(border[n].accuracy, 1) + "%").join(" and ")}). They need the whole chest, lung edges included, and a black frame is unlike anything they trained on; this test cannot tell those two reasons apart.`);
+    else names.forEach((n, i) => out.push(Math.abs(drops[i]) <= 3 ? `With only the central box, <b>${n}</b> barely changes (${fx(border[n].accuracy, 1)}% against ${fx(clean[n].accuracy, 1)}%), so it does not lean on text labels or the scan's edges.`
+      : `With only the central box, <b>${n}</b> drops to ${fx(border[n].accuracy, 1)}% (from ${fx(clean[n].accuracy, 1)}%), so the outer part of the scan carries some of its signal.`));
+  }
+  $("#st-verdict").innerHTML = out.join(" ");
+}
+function stLoop() {
+  const sec = $("#stress");
+  new IntersectionObserver(es => { stSeen = es[0].isIntersecting; }, { threshold: .15 }).observe(sec);
+  const stop = () => { stPlay = false; $("#st-play").textContent = "▶ Play"; };
+  $("#st-tabs").onclick = e => { const b = e.target.closest(".tab"); if (!b) return; stMod = b.dataset.m; $$("#st-tabs .tab").forEach(t => t.classList.toggle("active", t === b)); stLevel = 0; stress(); };
+  $("#st-kind").onclick = e => { const b = e.target.closest("button"); if (!b) return; stop(); stKind = b.dataset.k; stLevel = 0; stDial(); };
+  $("#st-level").oninput = e => { stop(); stLevel = +e.target.value; stDial(); };
+  $("#st-play").onclick = () => { stPlay = !stPlay; $("#st-play").textContent = stPlay ? "❚❚ Pause" : "▶ Play"; };
+  if (reduce) $("#st-play").textContent = "▶ Play";
+  setInterval(() => {
+    const I = stData();
+    if (!stPlay || !stSeen || document.hidden || !I || !I.sweeps) return;
+    const kinds = Object.keys(I.sweeps), sw = I.sweeps[stKind];
+    if (!sw) return;
+    if (stLevel < sw.levels.length - 1) stLevel++;
+    else { stLevel = 0; stKind = kinds[(kinds.indexOf(stKind) + 1) % kinds.length]; }
+    stDial();
+  }, 1500);
 }
 
 /* ------------------------------------------------------------ why these numbers */
@@ -993,12 +1184,11 @@ function wire() {
   $("#img-tabs").onclick = e => { const b = e.target.closest(".tab"); if (!b) return; mod = b.dataset.m; $$("#img-tabs .tab").forEach(t => t.classList.toggle("active", t === b)); imaging(); };
   $("#curve-seg").onclick = e => { const b = e.target.closest("button"); if (!b) return; $$("#curve-seg button").forEach(x => x.classList.toggle("active", x === b)); curves(b.dataset.k); };
   $("#leak-metric").onclick = e => { const b = e.target.closest("button"); if (!b) return; leakKey = b.dataset.k; $$("#leak-metric button").forEach(x => x.classList.toggle("active", x === b)); leakChart(); };
-  $("#it-tabs").onclick = e => { const b = e.target.closest(".tab"); if (!b) return; $$("#it-tabs .tab").forEach(t => t.classList.toggle("active", t === b)); imagingTests(b.dataset.m); };
   $("#up-metric").onclick = e => { const b = e.target.closest("button"); if (!b) return; upKey = b.dataset.k; $$("#up-metric button").forEach(x => x.classList.toggle("active", x === b)); upChart(); };
 }
 
 function init() {
-  buildStatic(); heroStats(); typer(); literature(); dataCards(); audit(); journey(); arch(); imaging(); xai(); blood(); testCases(); numbers(); live(); wire();
+  buildStatic(); heroStats(); typer(); literature(); dataCards(); audit(); journey(); arch(); imaging(); xai(); blood(); testCases(); stress(); stLoop(); numbers(); live(); wire();
   bgNetwork(); lungs(); tiltInit(); observeReveals(); watchCounts();
 }
 document.readyState === "loading" ? addEventListener("DOMContentLoaded", init) : init();

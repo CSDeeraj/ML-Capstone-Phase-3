@@ -426,6 +426,50 @@ h1.title{font-family:var(--head);font-weight:700;font-size:clamp(64px,13vw,156px
   .title-word::after,.scanbeam{display:none}
 }
 
+/* ===================== image stress lab ===================== */
+#st-tabs{margin-top:0}
+.kpi .v.ok{color:var(--green)}
+.kpi .v.warn{color:var(--amber)}
+.stress{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:28px;align-items:start;margin:20px 0}
+.stress.no-img{grid-template-columns:1fr}
+.st-view{position:relative}
+.st-frame{position:relative;overflow:hidden;border-radius:16px;box-shadow:0 0 0 1px var(--line),0 24px 60px -30px rgba(34,211,238,.45)}
+.st-frame canvas{display:block;width:100%;aspect-ratio:1;background:#000}
+.st-frame::after{content:"";position:absolute;left:0;right:0;top:0;height:16%;background:linear-gradient(to bottom,transparent,rgba(34,211,238,.22) 85%,rgba(165,243,252,.5));transform:translateY(-100%);animation:scanY 3.2s linear infinite;will-change:transform;pointer-events:none}
+@keyframes scanY{to{transform:translateY(625%)}}
+.st-cap{display:flex;flex-direction:column;gap:2px;margin-top:12px;font-size:12px;color:var(--muted);font-family:var(--mono)}
+.st-cap b{font-family:var(--head);font-size:17px;color:var(--ink)}
+.st-ctrl h3{margin-bottom:12px}
+.st-slide{margin:4px 0 6px}
+.st-ticks{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:2px}
+.st-ticks span{flex:1;text-align:center;transition:color .25s}
+.st-ticks span:first-child{text-align:left}.st-ticks span:last-child{text-align:right}
+.st-ticks span.on{color:var(--cyan)}
+.st-read{display:flex;gap:26px;flex-wrap:wrap;margin:12px 0 10px}
+.st-read small{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.04em}
+.st-read b{font-family:var(--head);font-size:30px;line-height:1.1;font-variant-numeric:tabular-nums;margin-right:8px}
+.st-read em{font-style:normal;font-family:var(--mono);font-size:12px;color:var(--green)}
+.st-read em.mid{color:var(--amber)}.st-read em.bad{color:var(--red)}
+.st-take{font-size:13px;color:#b8c1dc;margin:0 0 12px;min-height:2.6em}
+#st-play{margin-bottom:10px}
+.chart-box.tall{height:500px}
+.st-trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:14px}
+.st-tile{margin:0}
+.st-tile canvas{display:block;width:100%;aspect-ratio:1;border-radius:12px;background:#000;border:1px solid var(--line)}
+.st-tile figcaption{margin-top:8px;font-size:12px;color:var(--muted);line-height:1.35}
+.st-tile figcaption b{display:block;color:var(--ink);font-size:13px}
+.st-verdict{font-size:14px;color:#c7cee6;line-height:1.6}
+.st-foot{font-size:13px;color:#aab3d0;margin-top:12px}
+.cf{padding:12px 0;border-top:1px solid var(--line)}
+.cf:first-of-type{border-top:0;padding-top:0}
+.cf-bars{display:grid;grid-template-columns:110px 1fr 44px;gap:8px 12px;align-items:center;margin:10px 0 8px;font-size:12.5px;color:#cdd5ee}
+.cf-bars em{font-style:normal;font-family:var(--mono);text-align:right;color:var(--ink)}
+.cf p{font-size:12.5px;color:var(--muted)}
+@media(max-width:900px){
+  .stress{grid-template-columns:1fr}
+  .st-view{max-width:320px}
+}
+
 /* ===================== performance ===================== */
 /* sections off screen pause their CSS loops */
 .still,.still *,.still *::before,.still *::after{animation-play-state:paused!important}
