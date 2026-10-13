@@ -1,0 +1,392 @@
+{
+ "modality": "ct",
+ "test_images": 806,
+ "models": [
+  "Paper CNN",
+  "CovidNet-Plus"
+ ],
+ "cases": [
+  {
+   "name": "Clean",
+   "kind": "reference",
+   "Paper CNN": {
+    "accuracy": 90.57071960297766,
+    "sensitivity": 88.58195211786372,
+    "specificity": 94.67680608365019,
+    "auc": 0.9769202221148526
+   },
+   "CovidNet-Plus": {
+    "accuracy": 95.90570719602978,
+    "sensitivity": 95.02762430939227,
+    "specificity": 97.71863117870723,
+    "auc": 0.9932987416759449
+   }
+  },
+  {
+   "name": "Gaussian noise \u03c3=0.03",
+   "kind": "corruption",
+   "Paper CNN": {
+    "accuracy": 90.81885856079404,
+    "sensitivity": 88.76611418047882,
+    "specificity": 95.05703422053232,
+    "auc": 0.97657010412509
+   },
+   "CovidNet-Plus": {
+    "accuracy": 88.95781637717121,
+    "sensitivity": 86.74033149171271,
+    "specificity": 93.5361216730038,
+    "auc": 0.9653243142939171
+   }
+  },
+  {
+   "name": "Gaussian noise \u03c3=0.08",
+   "kind": "corruption",
+   "Paper CNN": {
+    "accuracy": 90.81885856079404,
+    "sensitivity": 89.87108655616943,
+    "specificity": 92.77566539923954,
+    "auc": 0.9714163673157854
+   },
+   "CovidNet-Plus": {
+    "accuracy": 48.38709677419355,
+    "sensitivity": 23.388581952117864,
+    "specificity": 100.0,
+    "auc": 0.8096058371671253
+   }
+  },
+  {
+   "name": "Blur (radius 1.5)",
+   "kind": "corruption",
+   "Paper CNN": {
+    "accuracy": 85.9801488833747,
+    "sensitivity": 81.58379373848987,
+    "specificity": 95.05703422053232,
+    "auc": 0.9629925284820985
+   },
+   "CovidNet-Plus": {
+    "accuracy": 87.71712158808933,
+    "sensitivity": 83.79373848987109,
+    "specificity": 95.81749049429658,
+    "auc": 0.955892135649714
+   }
+  },
+  {
+   "name": "Brightness \u221225 %",
+   "kind": "corruption",
+   "Paper CNN": {
+    "accuracy": 69.85111662531017,
+    "sensitivity": 90.42357274401473,
+    "specificity": 27.376425855513308,
+    "auc": 0.7402404610353689
+   },
+   "CovidNet-Plus": {
+    "accuracy": 94.29280397022333,
+    "sensitivity": 92.44935543278085,
+    "specificity": 98.09885931558935,
+    "auc": 0.989426436709171
+   }
+  },
+  {
+   "name": "Brightness +25 %",
+   "kind": "corruption",
+   "Paper CNN": {
+    "accuracy": 87.34491315136476,
+    "sensitivity": 85.8195211786372,
+    "specificity": 90.49429657794677,
+    "auc": 0.9569845037777731
+   },
+   "CovidNet-Plus": {
+    "accuracy": 94.41687344913151,
+    "sensitivity": 93.55432780847146,
+    "specificity": 96.1977186311787,
+    "auc": 0.9925074750190814
+   }
+  },
+  {
+   "name": "Contrast \u221240 %",
+   "kind": "corruption",
+   "Paper CNN": {
+    "accuracy": 78.53598014888337,
+    "sensitivity": 83.60957642725599,
+    "specificity": 68.06083650190115,
+    "auc": 0.86120622649833
+   },
+   "CovidNet-Plus": {
+    "accuracy": 77.91563275434243,
+    "sensitivity": 77.53222836095765,
+    "specificity": 78.70722433460075,
+    "auc": 0.875519049919823
+   }
+  },
+  {
+   "name": "Rotation 10\u00b0",
+   "kind": "corruption",
+   "Paper CNN": {
+    "accuracy": 87.9652605459057,
+    "sensitivity": 83.42541436464089,
+    "specificity": 97.33840304182509,
+    "auc": 0.9726137708407734
+   },
+   "CovidNet-Plus": {
+    "accuracy": 86.10421836228288,
+    "sensitivity": 79.55801104972376,
+    "specificity": 99.61977186311786,
+    "auc": 0.9874237618077292
+   }
+  },
+  {
+   "name": "JPEG quality 20",
+   "kind": "corruption",
+   "Paper CNN": {
+    "accuracy": 90.57071960297766,
+    "sensitivity": 88.39779005524862,
+    "specificity": 95.05703422053232,
+    "auc": 0.9769762409932147
+   },
+   "CovidNet-Plus": {
+    "accuracy": 88.70967741935483,
+    "sensitivity": 90.23941068139963,
+    "specificity": 85.55133079847909,
+    "auc": 0.9560741970043904
+   }
+  },
+  {
+   "name": "Low resolution (50\u2192100 px)",
+   "kind": "corruption",
+   "Paper CNN": {
+    "accuracy": 87.84119106699752,
+    "sensitivity": 84.16206261510129,
+    "specificity": 95.43726235741445,
+    "auc": 0.9711782870827469
+   },
+   "CovidNet-Plus": {
+    "accuracy": 93.30024813895781,
+    "sensitivity": 92.63351749539595,
+    "specificity": 94.67680608365019,
+    "auc": 0.9823750603953532
+   }
+  },
+  {
+   "name": "Horizontal flip",
+   "kind": "corruption",
+   "Paper CNN": {
+    "accuracy": 83.49875930521092,
+    "sensitivity": 76.61141804788214,
+    "specificity": 97.71863117870723,
+    "auc": 0.9572155816510165
+   },
+   "CovidNet-Plus": {
+    "accuracy": 95.90570719602978,
+    "sensitivity": 95.02762430939227,
+    "specificity": 97.71863117870723,
+    "auc": 0.9932987416759449
+   }
+  },
+  {
+   "name": "Random 30 px occlusion",
+   "kind": "corruption",
+   "Paper CNN": {
+    "accuracy": 82.6302729528536,
+    "sensitivity": 82.32044198895028,
+    "specificity": 83.26996197718631,
+    "auc": 0.8940507951179548
+   },
+   "CovidNet-Plus": {
+    "accuracy": 94.29280397022333,
+    "sensitivity": 95.58011049723757,
+    "specificity": 91.63498098859316,
+    "auc": 0.9833904025656648
+   }
+  },
+  {
+   "name": "Lungs blacked out (centre 60 %)",
+   "kind": "shortcut",
+   "Paper CNN": {
+    "accuracy": 67.3697270471464,
+    "sensitivity": 100.0,
+    "specificity": 0.0,
+    "auc": 0.4245285661267847
+   },
+   "CovidNet-Plus": {
+    "accuracy": 80.5210918114144,
+    "sensitivity": 78.63720073664825,
+    "specificity": 84.4106463878327,
+    "auc": 0.8925767983810544
+   }
+  },
+  {
+   "name": "Border removed (centre only)",
+   "kind": "shortcut",
+   "Paper CNN": {
+    "accuracy": 85.60794044665012,
+    "sensitivity": 82.87292817679558,
+    "specificity": 91.25475285171103,
+    "auc": 0.9497930802680503
+   },
+   "CovidNet-Plus": {
+    "accuracy": 73.9454094292804,
+    "sensitivity": 76.42725598526704,
+    "specificity": 68.8212927756654,
+    "auc": 0.8136602034885758
+   }
+  }
+ ],
+ "sweeps": {
+  "Gaussian noise": {
+   "unit": "\u03c3",
+   "levels": [
+    0,
+    0.02,
+    0.05,
+    0.08,
+    0.12,
+    0.2
+   ],
+   "Paper CNN": [
+    90.57,
+    90.69,
+    91.44,
+    90.94,
+    87.34,
+    78.41
+   ],
+   "CovidNet-Plus": [
+    95.91,
+    94.54,
+    79.78,
+    48.26,
+    34.24,
+    32.63
+   ]
+  },
+  "Blur": {
+   "unit": "radius px",
+   "levels": [
+    0,
+    0.5,
+    1,
+    1.5,
+    2,
+    3
+   ],
+   "Paper CNN": [
+    90.57,
+    90.69,
+    88.46,
+    85.98,
+    84.0,
+    81.39
+   ],
+   "CovidNet-Plus": [
+    95.91,
+    95.91,
+    92.56,
+    87.72,
+    82.26,
+    76.43
+   ]
+  },
+  "Rotation": {
+   "unit": "degrees",
+   "levels": [
+    0,
+    5,
+    10,
+    15,
+    20,
+    30
+   ],
+   "Paper CNN": [
+    90.57,
+    89.7,
+    87.97,
+    86.23,
+    85.11,
+    83.25
+   ],
+   "CovidNet-Plus": [
+    95.91,
+    90.94,
+    86.1,
+    83.37,
+    81.51,
+    78.78
+   ]
+  },
+  "Occlusion": {
+   "unit": "square side px",
+   "levels": [
+    0,
+    10,
+    20,
+    30,
+    40,
+    50
+   ],
+   "Paper CNN": [
+    90.57,
+    90.2,
+    86.48,
+    80.02,
+    73.33,
+    70.35
+   ],
+   "CovidNet-Plus": [
+    95.91,
+    94.42,
+    93.67,
+    93.67,
+    89.45,
+    86.1
+   ]
+  }
+ },
+ "duplicates": {
+  "test_with_copy_in_train": 7,
+  "test_without_copy": 799,
+  "Paper CNN": {
+   "all": {
+    "accuracy": 90.57071960297766,
+    "sensitivity": 88.58195211786372,
+    "specificity": 94.67680608365019,
+    "auc": 0.9769202221148526
+   },
+   "never_seen": {
+    "accuracy": 91.11389236545682,
+    "sensitivity": 89.36567164179104,
+    "specificity": 94.67680608365019,
+    "auc": 0.9794421428976788
+   }
+  },
+  "CovidNet-Plus": {
+   "all": {
+    "accuracy": 95.90570719602978,
+    "sensitivity": 95.02762430939227,
+    "specificity": 97.71863117870723,
+    "auc": 0.9932987416759449
+   },
+   "never_seen": {
+    "accuracy": 95.99499374217773,
+    "sensitivity": 95.1492537313433,
+    "specificity": 97.71863117870723,
+    "auc": 0.9935801032858522
+   }
+  }
+ },
+ "confidence": {
+  "Paper CNN": {
+   "ece": 0.03825357551027839,
+   "mean_confidence_correct": 0.9488230347633362,
+   "mean_confidence_wrong": 0.7223879098892212,
+   "errors": 76,
+   "confident_errors": 10
+  },
+  "CovidNet-Plus": {
+   "ece": 0.05978398238107674,
+   "mean_confidence_correct": 0.9279224276542664,
+   "mean_confidence_wrong": 0.7475195527076721,
+   "errors": 33,
+   "confident_errors": 6
+  }
+ }
+}
