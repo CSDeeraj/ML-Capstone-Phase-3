@@ -19,7 +19,20 @@ Model: the proposed **stacked ensemble** (Optuna‑tuned ERT + LightGBM + XGBoos
 | T9 | Leakage mechanism | Under the paper's row‑wise CV, a test row's nearest training row is **the same patient 38.3 %** of the time (1‑NN accuracy 86.3 %). Under patient‑grouped CV: 0 % (77.6 %) | This explains most of the gap between 98 % and 81 %. |
 
 ## Imaging (run on the GPU PC)
-`python src/imaging_tests.py --modality xray|ct` evaluates the saved fold‑0 models on 7 corruptions (noise, blur, brightness, contrast, rotation, JPEG, low resolution) and 2 shortcut tests (lungs blacked out; border removed). Results appear on the website's Test cases section after `python src/export_site.py`.
+`python src/imaging_tests.py --modality xray|ct` evaluates the saved fold‑0 models (Paper CNN and CovidNet‑Plus) on the same held‑out fold‑0 test images, changed in controlled ways. Results appear on the website after `python src/export_site.py`.
+
+| # | Test | What it asks | Why it matters |
+|---|---|---|---|
+| I‑T1 | 9 corruptions: noise (2 levels), blur, brightness ±25 %, contrast −40 %, rotation 10°, JPEG q20, low resolution, horizontal flip, random 30 px occlusion | Does accuracy hold when the image comes from a different machine, is compressed, or has an object in the way? | Real hospitals differ in scanners, exposure and storage (Hendrycks & Dietterich 2019) |
+| I‑T2 | Robustness sweeps: noise σ 0→0.2, blur 0→3 px, rotation 0→30°, occlusion 0→50 px | Where does each model break? | A curve is stronger evidence than one corrupted point; it shows the safe operating range |
+| I‑T3 | Lungs blacked out (centre 60 %) | Can the model still "diagnose" without the lungs? | A high score here means shortcut learning (text markers, borders, source hospital), as Maguolo & Nanni and DeGrave et al. found |
+| I‑T4 | Border removed (centre only) | Does the model work from the lung field alone? | The complement of I‑T3 |
+| I‑T5 | Never‑seen split | Accuracy on test images with an identical copy (after resizing) in training versus those with none | The data audit found hundreds of duplicate images; the never‑seen score is the honest one |
+| I‑T6 | Confidence | Calibration (ECE) and errors made with >90 % confidence | Confident mistakes are the dangerous ones in screening |
+
+Results: _filled in from `results/imaging_tests_{xray,ct}.json` after the PC run._
+
+The tested models are the fold‑0 models saved by the default (quick/full) profile, not the paper‑protocol runs, which do not save models.
 
 ## How to say it in the viva
 "On new patients our model reaches AUC 0.90, and 0.86 on a later group of patients. It stays stable across sex and age, degrades gradually with lab noise, and gives 0.5 on shuffled labels, so the pipeline does not leak. Its weak point is the first visit, where AUC falls to 0.73. That tells us severity from a routine blood count is easier to confirm than to predict at admission, and it is the clearest direction for future work."
