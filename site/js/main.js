@@ -511,7 +511,7 @@ function imaging() {
   const ep = r.history.paper.length, epPlus = r.history.plus.length;
   const ipm = (R.imaging_paper || {})[mod], ipx = ipm && ipm.models["Paper CNN"];
   $("#img-note").innerHTML = `<b>How to read these numbers.</b> The charts compare eight models from the “${r.profile}” run: the paper CNN for ${ep} epochs and CovidNet-Plus for ${epPlus}, on ${r.folds} held-out 10% fold${r.folds > 1 ? "s" : ""}, with class-weighted loss instead of synthetic images.` +
-    (ipx ? ` The paper CNN was also re-run with the paper's exact protocol (100 epochs, 10 folds, SMOTE-ENN): <b>${fx(ipx.accuracy)}% ± ${fx(ipx.accuracy_std)}</b> against the paper's ${fx(R.paper[mod].CNN.accuracy)}%. That run is in the table at the end of this section, and <a href="#numbers" style="color:var(--cyan)">section 09</a> explains the gap.` : "");
+    (ipx ? ` The paper CNN was also re-run with the paper's exact protocol (100 epochs, 10 folds, SMOTE-ENN): <b>${fx(ipx.accuracy)}% ± ${fx(ipx.accuracy_std)}</b> against the paper's ${fx(R.paper[mod].CNN.accuracy)}%. That run is in the table at the end of this section, and <a href="#numbers" style="color:var(--cyan)">section 10</a> explains the gap.` : "");
   const M = r.models, P = R.paper[mod], best = IMG_ORDER.reduce((a, k) => (M[k] && (!a || M[k].accuracy > M[a].accuracy) ? k : a), null);
   const d = M[best].accuracy - M["Paper CNN"].accuracy;
   $("#img-kpis").innerHTML = [
@@ -863,7 +863,7 @@ function audit() {
   const ks = Object.keys(IA);
   $("#img-audit").innerHTML = `<h3>Image audit <small>formats, resolutions, duplicates, near-duplicates across the split</small></h3>` + (ks.length ?
     `<div class="table-scroll"><table class="lit"><thead><tr><th>Modality</th><th>Files</th><th>Colour modes</th><th>Width (min–max)</th><th>Non-square</th><th>Exact duplicates</th><th>Across classes</th><th>Identical after resizing to 100 px</th><th>…carrying both labels</th><th>Accuracy ceiling</th><th>Test scans with near-duplicate in train</th></tr></thead><tbody>` +
-    ks.map(k => { const v = IA[k], nd = v.near_duplicate_test_in_train; return `<tr><td>${k}</td><td>${v.files}</td><td>${Object.entries(v.modes).map(([m, n]) => m + " " + n).join(", ")}</td><td>${v.width.min}–${v.width.max}</td><td>${v.aspect_not_square}</td><td>${v.exact_duplicates.extra_files}</td><td>${v.exact_duplicates.cross_class}</td>${(rd => rd ? `<td>${rd.groups} groups, ${rd.files} files</td><td>${rd.cross_label_groups} groups, ${rd.cross_label_files} files</td><td>${fx(rd.accuracy_ceiling, 2)}%</td>` : "<td>–</td><td>–</td><td>–</td>")(v.resized_duplicates)}<td>${nd ? nd.with_near_duplicate_in_train + " / " + nd.test_images + " (" + fx(100 * nd.share, 1) + "%)" : "–"}</td></tr>`; }).join("") + "</tbody></table></div>"
+    ks.map(k => { const v = IA[k], nd = v.near_duplicate_test_in_train; return `<tr><td>${k}</td><td>${v.files}</td><td>${Object.entries(v.modes).map(([m, n]) => m + " " + n).join(", ")}</td><td>${v.width.min}–${v.width.max}</td><td>${v.aspect_not_square}</td><td>${v.exact_duplicates.extra_files}</td><td>${v.exact_duplicates.cross_class}</td>${(rd => rd ? `<td>${rd.groups} groups, ${rd.files} files</td><td>${rd.cross_label_groups} group${rd.cross_label_groups === 1 ? "" : "s"}, ${rd.cross_label_files} files</td><td>${fx(asPct(rd.accuracy_ceiling), 2)}%</td>` : "<td>–</td><td>–</td><td>–</td>")(v.resized_duplicates)}<td>${nd ? nd.with_near_duplicate_in_train + " / " + nd.test_images + " (" + fx(100 * nd.share, 1) + "%)" : "–"}</td></tr>`; }).join("") + "</tbody></table></div>"
     : `<p class="note">Pending: run <code>python src/data_audit.py</code> on the machine that holds the images.</p>`);
 }
 
@@ -911,6 +911,7 @@ const stModels = I => I.models || Object.keys(I.cases[0]).filter(k => k !== "nam
 const stMain = I => (stModels(I).includes("CovidNet-Plus") ? "CovidNet-Plus" : stModels(I)[0]);
 const stCase = (I, re) => I.cases.find(c => re.test(c.name));
 const balAcc = r => (r.sensitivity + r.specificity) / 2;
+const asPct = v => (v != null && v <= 1 ? 100 * v : v);
 const axMin = (vals, cap, step = 10) => Math.min(cap, Math.floor(Math.min(...vals.filter(v => v != null)) / step) * step);
 const stLvl = (k, v) => k === "Gaussian noise" ? `σ ${v}` : k === "Blur" ? `${v} px` : k === "Rotation" ? `${v}°` : `${v} px`;
 const stDesc = (k, v) => !v ? "Clean" : k === "Gaussian noise" ? `Noise σ = ${v}` : k === "Blur" ? `Blur, radius ${v} px` : k === "Rotation" ? `Tilted ${v}°` : `${v} × ${v} px block`;
@@ -977,7 +978,7 @@ function stress() {
   $("#st-kpis").innerHTML =
     (clean ? k("Clean scans", clean[main].accuracy, 1, "%", `${main} accuracy${other ? ` · ${other} ${fx(clean[other].accuracy, 1)}%` : ""}`) : "") +
     (ns ? k("Never seen in any form", ns.accuracy, 1, "%", `on the ${D.test_without_copy} test scans with no identical copy in training`) : "") +
-    (lungs ? k("Lungs blacked out", balAcc(lungs[main]), 1, "%", `balanced accuracy · AUC ${fx(lungs[main].auc, 2)} · ${balAcc(lungs[main]) <= 60 ? "a coin toss, so it needs the lungs" : balAcc(lungs[main]) <= 75 ? "above a coin toss: some signal comes from outside the lungs" : "far above a coin toss: shortcut warning"}`, balAcc(lungs[main]) <= 65 ? "ok" : "warn") : "") +
+    (lungs ? k("Lungs blacked out", balAcc(lungs[main]), 1, "%", `${main}, balanced accuracy · AUC ${fx(lungs[main].auc, 2)} · ${balAcc(lungs[main]) <= 60 ? "a coin toss, so it needs the lungs" : balAcc(lungs[main]) <= 75 ? "above a coin toss: some signal comes from outside the box" : stMod === "ct" ? "well above a coin toss: a shortcut risk, partly because CT lungs reach past the box" : "well above a coin toss: shortcut warning"}`, balAcc(lungs[main]) <= 65 ? "ok" : "warn") : "") +
     (cf ? k("Confident mistakes", cf.confident_errors, 0, "", `of ${cf.errors} errors were made with more than 90% confidence`) : "");
   watchCounts($("#st-kpis"));
 
@@ -1012,8 +1013,8 @@ function stress() {
     options: { maintainAspectRatio: false, scales: { y: { min: axMin(have.flatMap(([key]) => names.map(n => ((D[n] || {})[key] || {}).accuracy)), 80, 5), max: 100, title: { display: true, text: "accuracy %" } } }, plugins: { legend: { position: "bottom" } } } });
   const all = (D[main] || {}).all, A = ((R.audit || {}).imaging || {})[mk] || {}, rd = A.resized_duplicates;
   $("#st-dup-note").innerHTML = (D.test_with_copy_in_train != null ? `<b>${D.test_with_copy_in_train}</b> of the ${I.test_images} test scans have an identical copy (after shrinking to 100 px) in the training set. ` : "") +
-    (ns && all ? `On the ${D.test_without_copy} scans it has never seen, ${main} scores <b>${fx(ns.accuracy, 1)}%</b> against ${fx(all.accuracy, 1)}% overall, so duplicates ${Math.abs(all.accuracy - ns.accuracy) < 1 ? "barely move the headline number" : `move the headline number by ${fx(Math.abs(all.accuracy - ns.accuracy), 1)} points`}. ` : "") +
-    (rd ? `Across the whole ${mk} set, ${rd.cross_label_groups} groups of identical scans carry both labels, which caps any model at <b>${fx(rd.accuracy_ceiling, 2)}%</b>.` : "");
+    (ns && all ? `On the ${D.test_without_copy} scans it has never seen, ${main} scores <b>${fx(ns.accuracy, 1)}%</b> against ${fx(all.accuracy, 1)}% overall, so ${ns.accuracy >= all.accuracy - .5 ? "the duplicates do not inflate its score" : `the duplicates inflate its score by ${fx(all.accuracy - ns.accuracy, 1)} points`}. ` : "") +
+    (rd ? `Across the whole ${mk} set, ${rd.cross_label_groups === 1 ? "one group" : rd.cross_label_groups + " groups"} of identical scans ${rd.cross_label_groups === 1 ? "carries" : "carry"} both labels, which caps any model at <b>${fx(asPct(rd.accuracy_ceiling), 2)}%</b>.` : "");
 
   // confidence
   const bar = (w, col) => `<div class="bar"><i data-w="${w}" style="background:${col}"></i></div>`;
@@ -1033,6 +1034,9 @@ function stDial() {
   $$("#st-kind button").forEach(b => b.classList.toggle("active", b.dataset.k === stKind));
   $("#st-level").max = sw.levels.length - 1; $("#st-level").value = stLevel;
   $("#st-ticks").innerHTML = sw.levels.map((v, i) => `<span class="${i === stLevel ? "on" : ""}">${i ? stLvl(stKind, v) : "clean"}</span>`).join("");
+  const last = sw.levels.length - 1, loss = names.map(n => sw[n][0] - sw[n][last]), lo = loss.indexOf(Math.max(...loss)), hi = loss.indexOf(Math.min(...loss));
+  $("#st-take").innerHTML = names.length > 1 ? `At the strongest setting (${stLvl(stKind, sw.levels[last])}) <b style="color:${ST_COL[names[lo]] || C.grey}">${names[lo]}</b> loses ${fx(loss[lo], 1)} points and <b style="color:${ST_COL[names[hi]] || C.grey}">${names[hi]}</b> ${fx(loss[hi], 1)}.` +
+    (loss[lo] > 2 * Math.max(loss[hi], 1) && loss[lo] > 10 ? ` ${names[lo]} is far more fragile to ${(ST_NAME[stKind] || stKind).toLowerCase()}.` : "") : "";
   if (stSrc) { stDraw($("#st-img"), stKind, sw.levels[stLevel]); $("#st-cap-t").textContent = stDesc(stKind, sw.levels[stLevel]); }
   $("#st-read").innerHTML = names.map(n => {
     const a = sw[n][stLevel], d = a - sw[n][0];
@@ -1052,18 +1056,27 @@ function stTrio(I, main, clean, lungs, border) {
     tile("lungs", "Lungs blacked out", lungs, lungs && `${fx(balAcc(lungs[main]), 1)}% balanced`) +
     tile("border", "Only the lung box", border, border && `${fx(border[main].accuracy, 1)}% accuracy`);
   if (stSrc) $$("#st-trio canvas").forEach(cv => stDraw(cv, cv.dataset.kind, 1));
-  const out = [];
-  stModels(I).forEach(n => {
-    if (!lungs) return;
-    const b = balAcc(lungs[n]);
-    out.push(b <= 60 ? `<b>${n}</b> falls to about a coin toss (${fx(b, 1)}% balanced accuracy, AUC ${fx(lungs[n].auc, 2)}) once the lungs are hidden, so its decisions come from the lungs.`
-      : b <= 75 ? `<b>${n}</b> keeps some signal without the lungs (${fx(b, 1)}% balanced accuracy), so part of its decision comes from outside the lung field, such as the body outline or exposure.`
-      : `<b>${n}</b> still reaches ${fx(b, 1)}% balanced accuracy with the lungs hidden. That is a shortcut warning: it is reading something other than the lungs.`);
+  const out = [], names = stModels(I);
+  const call = r => (r.sensitivity < 10 ? "non-COVID" : r.specificity < 10 ? "COVID" : "");
+  const same = lungs && names.length > 1 && names.every(n => balAcc(lungs[n]) <= 60 && call(lungs[n]) && call(lungs[n]) === call(lungs[names[0]]));
+  if (same) {
+    out.push(`With the lungs hidden, both models call almost every scan ${call(lungs[names[0]])} (${names.map(n => fx(balAcc(lungs[n]), 1) + "%").join(" and ")} balanced accuracy, a coin toss), so neither can decide without the lungs.`);
+    const weak = names.filter(n => lungs[n].auc >= .7);
+    if (weak.length) out.push(`${weak.map(n => `<b>${n}</b>`).join(" and ")} still rank${weak.length > 1 ? "" : "s"} scans a little (AUC ${weak.map(n => fx(lungs[n].auc, 2)).join(", ")}), so a weak cue survives outside the box.`);
+  }
+  if (lungs && !same) names.forEach(n => {
+    const r = lungs[n], b = balAcc(r), all1 = call(r);
+    if (b <= 60) out.push(`<b>${n}</b> ${all1 ? `calls almost every scan ${all1}` : "falls to a coin toss"} once the lungs are hidden (${fx(b, 1)}% balanced accuracy), so it cannot decide without them.` +
+      (r.auc >= .7 ? ` Its scores still rank scans a little (AUC ${fx(r.auc, 2)}), so a weak cue survives outside the box.` : ""));
+    else if (b <= 75) out.push(`<b>${n}</b> keeps some signal with the lungs hidden (${fx(b, 1)}% balanced accuracy), so part of its decision comes from outside the box.`);
+    else out.push(`<b>${n}</b> still reaches ${fx(b, 1)}% balanced accuracy (AUC ${fx(r.auc, 2)}) with the centre blacked out. ` +
+      (stMod === "ct" ? "CT slices show the lungs reaching past that box, so some lung tissue stays visible, but this is still a shortcut risk and we flag it openly." : "That is a shortcut warning: it is reading something other than the lungs."));
   });
   if (border && clean) {
-    const d = clean[main].accuracy - border[main].accuracy;
-    out.push(Math.abs(d) <= 5 ? `With the borders cut away, ${main} barely changes (${fx(border[main].accuracy, 1)}% against ${fx(clean[main].accuracy, 1)}%), so it does not lean on text labels or edges.`
-      : `Cutting the borders away costs ${main} ${fx(d, 1)} points, so the edges of the film carry some of its signal.`);
+    const drops = names.map(n => clean[n].accuracy - border[n].accuracy);
+    if (drops.every(d => d > 20)) out.push(`Keeping only the central box breaks ${names.length > 1 ? "both models" : names[0]} too (${names.map(n => fx(border[n].accuracy, 1) + "%").join(" and ")}). They need the whole chest, lung edges included, and a black frame is unlike anything they trained on; this test cannot tell those two reasons apart.`);
+    else names.forEach((n, i) => out.push(Math.abs(drops[i]) <= 3 ? `With only the central box, <b>${n}</b> barely changes (${fx(border[n].accuracy, 1)}% against ${fx(clean[n].accuracy, 1)}%), so it does not lean on text labels or the scan's edges.`
+      : `With only the central box, <b>${n}</b> drops to ${fx(border[n].accuracy, 1)}% (from ${fx(clean[n].accuracy, 1)}%), so the outer part of the scan carries some of its signal.`));
   }
   $("#st-verdict").innerHTML = out.join(" ");
 }

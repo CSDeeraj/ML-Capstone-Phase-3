@@ -450,6 +450,7 @@ h1.title{font-family:var(--head);font-weight:700;font-size:clamp(64px,13vw,156px
 .st-read b{font-family:var(--head);font-size:30px;line-height:1.1;font-variant-numeric:tabular-nums;margin-right:8px}
 .st-read em{font-style:normal;font-family:var(--mono);font-size:12px;color:var(--green)}
 .st-read em.mid{color:var(--amber)}.st-read em.bad{color:var(--red)}
+.st-take{font-size:13px;color:#b8c1dc;margin:0 0 12px;min-height:2.6em}
 #st-play{margin-bottom:10px}
 .chart-box.tall{height:500px}
 .st-trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:14px}
