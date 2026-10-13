@@ -14,7 +14,7 @@ Status, results and next steps: see [HANDOFF.md](HANDOFF.md).
 * [docs/TEST_CASES.md](docs/TEST_CASES.md) — nine blood test cases on unseen patients, with the admission-visit weakness stated
 * [docs/PRESENTATION.md](docs/PRESENTATION.md) — timed talk script, demo plan, viva question bank
 * [docs/RUBRIC.md](docs/RUBRIC.md) — where the evidence for each rubric row lives
-* Test cases: `src/test_cases.py` (blood, T1–T9), `src/imaging_tests.py` (corruptions + shortcut tests), `python -m pytest -q` (unit checks)
+* Test cases: `src/test_cases.py` (blood, T1–T9), `src/imaging_tests.py` (corruptions, robustness sweeps, shortcut tests, never‑seen split), `python -m pytest -q` (unit checks)
 
 ## Run on a new PC (Windows / Linux / macOS)
 ```bash
