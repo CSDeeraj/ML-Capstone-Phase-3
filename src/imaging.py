@@ -571,4 +571,3 @@ if __name__ == "__main__":
     if a.profile == "paper":  # separate results file so it never overwrites the full-profile results
         run_paper(mod, a.folds or PROFILES["paper"]["folds"], f"imaging_{'xray' if mod == 'x-ray' else 'ct'}_paper", a.subset)
         raise SystemExit
-    run(mod, a.profile, a.folds or PROFILES[a.profile]["folds"], f"imaging_{'xray' if mod == 'x-ray' else 'ct'}")
