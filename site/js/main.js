@@ -689,10 +689,25 @@ function forestLeaves(v) {
   return F.trees.map(t => { let n = 0; while (t.l[n] !== -1) n = x[t.f[n]] <= t.t[n] ? t.l[n] : t.r[n]; return t.v[n]; });
 }
 function forestPredict(v) { const l = forestLeaves(v); return l.reduce((a, b) => a + b, 0) / l.length; }
+// 0-10 severity scale (src/severity_scale.py): 10 x the share of the real visits this forest scores at or below p,
+// so a typical visit sits near 5. Each level's severe and death-flag rates come from patients the model never saw.
+const SV = window.SEVERITY || null;
+const SV_COL = { "Not severe": C.green, Mild: C.lime, "Typical patient": C.amber, Serious: "#fb923c", Severe: C.red };
+function sevScore(p) {
+  const c = SV.cuts, n = c.length - 1;
+  if (p <= c[0]) return 0;
+  if (p >= c[n]) return 10;
+  let lo = 0, hi = n;
+  while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (c[mid] <= p) lo = mid; else hi = mid; }
+  return 10 * (lo + (c[hi] > c[lo] ? (p - c[lo]) / (c[hi] - c[lo]) : .5)) / n;
+}
+const sevBand = s => SV.bands.find(b => Math.round(s) >= b.lo && Math.round(s) <= b.hi);
+const sevCol = s => SV_COL[sevBand(s).name] || C.amber;
 function live() {
-  if (!F) { $("#live").style.display = "none"; return; }
-  const m = F.meta, box = $("#sliders");
+  if (!F || !SV) { $("#live").style.display = "none"; return; }
+  const m = F.meta, box = $("#sliders"), out = $(".live-out");
   m.raw.forEach((n, i) => { vals[n] = m.raw_med[i]; });
+  const dec = el => (+el.max > 50 ? 0 : 1);
   const mk = (n, i) => {
     const lo = m.raw_lo[i], hi = m.raw_hi[i], st = (hi - lo) / 200 || .01;
     if (n === "Sex") return `<div class="slider-row"><label>Sex</label><div class="sex-toggle"><button data-s="1" class="active">Male</button><button data-s="0">Female</button></div><output></output></div>`;
@@ -700,60 +715,101 @@ function live() {
   };
   box.innerHTML = m.raw.map((n, i) => ({ n, i })).sort((a, b) => (VISIBLE.indexOf(a.n) + 99) % 99 - (VISIBLE.indexOf(b.n) + 99) % 99).map(o => mk(o.n, o.i)).join("");
   vals.Sex = 1;
-  let upQ = false;
+  const base = Object.fromEntries(m.raw.map((n, i) => [n, m.raw_med[i]]));
+  const p0 = forestPredict(base), s0 = sevScore(p0);
+  let upQ = false, glideId = 0;
   const later = () => { if (upQ) return; upQ = true; requestAnimationFrame(() => { upQ = false; update(); }); };
-  box.addEventListener("input", e => { const n = e.target.dataset.n; if (!n) return; vals[n] = +e.target.value; e.target.nextElementSibling.textContent = fx(vals[n], +e.target.max > 50 ? 0 : 1); later(); });
-  box.addEventListener("click", e => { const b = e.target.closest("[data-s]"); if (!b) return; vals.Sex = +b.dataset.s; $$(".sex-toggle button").forEach(x => x.classList.toggle("active", x === b)); update(); });
+  const stopGlide = () => { glideId++; out.classList.remove("gliding"); };
+  const syncSex = () => $$(".sex-toggle button").forEach(x => x.classList.toggle("active", +x.dataset.s === vals.Sex));
+  const sync = () => { $$("input[data-n]").forEach(el => { el.value = vals[el.dataset.n]; el.nextElementSibling.textContent = fx(vals[el.dataset.n], dec(el)); }); syncSex(); };
+  box.addEventListener("input", e => { const n = e.target.dataset.n; if (!n) return; stopGlide(); vals[n] = +e.target.value; e.target.nextElementSibling.textContent = fx(vals[n], dec(e.target)); markPre(-1); later(); });
+  box.addEventListener("click", e => { const b = e.target.closest("[data-s]"); if (!b) return; stopGlide(); vals.Sex = +b.dataset.s; syncSex(); markPre(-1); update(); });
   $("#more-toggle").onclick = e => { const h = $$(".more"); const open = h[0].classList.contains("hidden"); h.forEach(x => x.classList.toggle("hidden", !open)); e.target.textContent = open ? "Hide extra parameters" : "Show all CBC parameters"; };
-  const pre = [["Typical patient", () => m.raw.forEach((n, i) => vals[n] = m.raw_med[i])], ...m.examples.flatMap(g => g.values.slice(0, 2).map((v, k) => [`${g.label} ${k + 1}`, () => Object.assign(vals, v)]))];
-  $("#presets").innerHTML = pre.map((p, i) => `<button data-p="${i}">${p[0]}</button>`).join("");
-  $("#presets").onclick = e => { const b = e.target.closest("button"); if (!b) return; pre[+b.dataset.p][1](); sync(); update(); };
-  const sync = () => {
-    $$("input[data-n]").forEach(el => { el.value = vals[el.dataset.n]; el.nextElementSibling.textContent = fx(vals[el.dataset.n], +el.max > 50 ? 0 : 1); });
-    $$(".sex-toggle button").forEach(x => x.classList.toggle("active", +x.dataset.s === vals.Sex));
+
+  // presets: real visits chosen by fixed rules in src/severity_scale.py, the median patient, and one honest miss
+  const PR = SV.presets.map(q => ({ ...q, values: { ...base, ...q.values } }));
+  PR.forEach(q => { q.s = sevScore(forestPredict(q.values)); });
+  const preName = q => q.kind === "miss" ? "Missed severe case" : `${Math.round(q.s)} · ${q.kind === "median" ? "Typical patient" : sevBand(q.s).name}`;
+  const preNote = q => {
+    const held = q.heldout != null ? ` A model that never saw this patient scores it <b>${fx(q.heldout, 1)}</b>.` : "";
+    if (q.kind === "median") return `<b>Typical patient:</b> every value at the median of the ${SV.ref_n.toLocaleString()} real visits (age ${fx(q.values.Age, 0)}). It lands at <b>${fx(q.s, 1)}</b>${Math.abs(q.s - 5) <= 1.5 ? ", in the middle of the scale" : ""}.`;
+    if (q.kind === "miss") return `<b>An honest miss.</b> This real visit (age ${q.values.Age}) was labelled <b style="color:${C.red}">severe</b> by the hospital, yet the forest scores it only <b>${fx(q.s, 1)}</b>${q.s < s0 ? `, below the typical patient (${fx(s0, 1)})` : ""}.${held} The breakdown below shows which values pull it down. On patients it never saw, ${SV.severe_scored_5_or_less} of the ${SV.severe_total.toLocaleString()} severe visits (${fx(100 * SV.severe_scored_5_or_less / SV.severe_total, 0)}%) score 5 or less, so a low score never rules severe out.`;
+    return `<b>Real visit</b>, age ${q.values.Age}, labelled <b style="color:${q.truth === "severe" ? C.red : C.green}">${q.truth}</b> by the hospital. The forest scores it <b>${fx(q.s, 1)}</b>.${held}`;
   };
-  function update() {
-    const p = forestPredict(vals), arc = $("#g-arc"), nd = $("#g-needle");
-    arc.style.strokeDashoffset = 251 * (1 - p); nd.style.transform = `rotate(${p * 180 - 90}deg)`;
-    $("#g-pct").textContent = Math.round(p * 100);
+  $("#presets").innerHTML = PR.map((q, i) => `<button data-p="${i}" style="--c:${q.kind === "miss" ? C.pink : sevCol(q.s)}">${preName(q)}</button>`).join("");
+  const markPre = i => {
+    $$("#presets button").forEach((b, k) => b.classList.toggle("on", k === i));
+    $("#preset-note").innerHTML = i < 0 ? "Your own values: drag any slider and the meter follows." : preNote(PR[i]);
+  };
+  $("#presets").onclick = e => { const b = e.target.closest("button"); if (!b) return; markPre(+b.dataset.p); glide(PR[+b.dataset.p].values); };
+  // presets glide the sliders to the new values so you can watch each one move and the meter follow
+  function glide(to) {
+    const my = ++glideId, from = { ...vals };
+    vals.Sex = to.Sex; syncSex();
+    if (reduce) { Object.assign(vals, to); sync(); update(); return; }
+    out.classList.add("gliding");
+    const t0 = performance.now(), D = 1100;
+    const step = now => {
+      if (my !== glideId) return;
+      const k = Math.min(1, (now - t0) / D), e = k < .5 ? 4 * k * k * k : 1 - (-2 * k + 2) ** 3 / 2;
+      m.raw.forEach(n => { if (n !== "Sex") vals[n] = k < 1 ? from[n] + (to[n] - from[n]) * e : to[n]; });
+      sync(); update(k < 1);  // light frames while moving; the full breakdown once the sliders land
+      if (k < 1) requestAnimationFrame(step); else out.classList.remove("gliding");
+    };
+    requestAnimationFrame(step);
+  }
+
+  // the scale: five bands, each with the share of held-out visits in it that were really severe
+  $("#sev-scale").innerHTML = `<div class="sev-track">${SV.bands.map(b => `<div class="sev-b" style="flex:${b.hi - b.lo + 1 - (b.lo === 0 ? .5 : 0) - (b.hi === 10 ? .5 : 0)} 1 0;--c:${SV_COL[b.name]}"><b>${b.name}</b><span>${b.lo}–${b.hi}</span><em>${fx(b.severe, 0)}% severe</em></div>`).join("")}</div><i class="sev-mark"></i>`;
+  const mark = $("#sev-scale .sev-mark"), bandEls = $$("#sev-scale .sev-b");
+  function update(light) {
+    const p = forestPredict(vals), s = sevScore(p), b = sevBand(s), col = sevCol(s), lv = SV.levels[Math.round(s)];
+    $("#g-arc").style.strokeDashoffset = 251 * (1 - s / 10); $("#g-needle").style.transform = `rotate(${s * 18 - 90}deg)`;
+    $("#g-score").textContent = fx(s, 1);
     const v = $("#verdict");
-    const [txt, col] = p < .3 ? ["Low severity risk → general ward", C.green] : p < .55 ? ["Elevated risk → close monitoring", C.amber] : ["High severity risk → ICU review", C.red];
-    v.textContent = txt; v.style.color = col;
-    const eff = VISIBLE.filter(n => n !== "Sex").concat(["Sex"]).map(n => { const t = { ...vals }; t[n] = n === "Sex" ? 1 - vals.Sex : m.raw_med[m.raw.indexOf(n)]; return [n, p - forestPredict(t)]; }).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, 3);
-    $("#why").innerHTML = "Biggest levers vs. a typical patient: " + eff.map(([n, d]) => `<b style="color:${d > 0 ? C.red : C.cyan}">${NICE[n] || n} ${d > 0 ? "▲" : "▼"}${Math.abs(d * 100).toFixed(0)}%</b>`).join(" · ");
-    explain(p);
+    v.textContent = b.name; v.style.color = col;
+    bandEls.forEach((el, i) => el.classList.toggle("on", SV.bands[i] === b));
+    mark.style.left = `${s * 10}%`;
+    $("#sev-line").innerHTML = `Of the <b>${lv.n}</b> visits that scored <b>${lv.score}</b> on patients the model never saw, <b style="color:${col}">${fx(lv.severe, 0)}%</b> were labelled severe and ${fx(lv.died, 1)}% carried a death flag.`;
+    if (light) return;
+    const steps = walk(p), eff = [...steps].sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).filter(x => Math.abs(x[1]) >= .05).slice(0, 3);
+    $("#why").innerHTML = eff.length ? "Biggest pushes from the typical patient: " + eff.map(([n, d]) => `<b style="color:${d > 0 ? C.red : C.cyan}">${NICE[n] || n} ${d > 0 ? "▲" : "▼"}${fx(Math.abs(d), 1)}</b>`).join(" · ")
+      : "Every value sits at the typical patient's, so nothing pushes the score either way.";
+    explain(p, s, steps);
+  }
+  // exact walk from the typical patient to this one: switch values one at a time (largest single effect first) and
+  // record how far the score moves; the steps add up to the final score exactly
+  function walk(p) {
+    const changed = m.raw.filter(n => Math.abs(vals[n] - base[n]) > 1e-9);
+    const single = changed.map(n => [n, Math.abs(p - forestPredict({ ...vals, [n]: base[n] }))]).sort((a, b) => b[1] - a[1]).map(x => x[0]);
+    let curV = { ...base }, prev = s0;
+    return single.map(n => { curV[n] = vals[n]; const ns = sevScore(forestPredict(curV)), d = ns - prev; prev = ns; return [n, d]; });
   }
   const votes = $("#votes");
   votes.innerHTML = F.trees.map(() => "<i></i>").join("");
   const cells = $$("i", votes);
   const mix = (a, b, k) => a.map((x, i) => Math.round(x + (b[i] - x) * k));
   const heat = v => { const g = [52, 211, 153], y = [251, 191, 36], r = [251, 113, 133]; return `rgb(${(v < .5 ? mix(g, y, v * 2) : mix(y, r, (v - .5) * 2)).join(",")})`; };
-  const base = Object.fromEntries(m.raw.map((n, i) => [n, m.raw_med[i]]));
-  const p0 = forestPredict(base);
   if (R.blood) $("#ex-base").textContent = fx(100 * R.blood.severe / R.blood.n, 1);
-  // "Why this percentage?": tree votes, then an exact walk from the typical patient to this one
-  function explain(p) {
+  // "Why this score?": tree votes, their rank among real visits, then an exact walk from the typical patient to this one
+  function explain(p, s, steps) {
     const leaves = forestLeaves(vals), sev = leaves.filter(v => v >= .5).length;
     leaves.forEach((v, i) => cells[i].style.backgroundColor = heat(v));
-    $("#ex-pct").textContent = Math.round(p * 100);
-    $("#ex-votes").innerHTML = `<b>${sev} of ${leaves.length}</b> trees lean severe. Each tree drops this blood count down its branches to a leaf holding the share of severe visits it saw in training, with both classes weighted equally; the needle is the average of those ${leaves.length} shares.`;
-    const k = R.blood ? R.blood.severe / (R.blood.n - R.blood.severe) : 1088 / 3342, o = Math.min(p, .999) / (1 - Math.min(p, .999)), real = o * k / (1 + o * k);
-    $("#ex-real").innerHTML = `Because severe and non-severe visits were weighted equally in training, 50% on the gauge means “as likely as the average patient”. At real-world odds, where about 1 visit in 4 is severe, <b>${Math.round(p * 100)}%</b> on the gauge is roughly a <b>${Math.round(real * 100)}%</b> chance of a severe visit.`;
-    const changed = m.raw.filter(n => Math.abs(vals[n] - base[n]) > 1e-9);
-    const single = changed.map(n => [n, Math.abs(p - forestPredict({ ...vals, [n]: base[n] }))]).sort((a, b) => b[1] - a[1]).map(x => x[0]);
-    let curV = { ...base }, prev = p0;
-    const steps = single.map(n => { curV[n] = vals[n]; const np = forestPredict(curV), d = np - prev; prev = np; return [n, d]; });
+    $("#ex-pct").textContent = fx(s, 1);
+    $("#ex-votes").innerHTML = `<b>${sev} of ${leaves.length}</b> trees lean severe. Each tree drops this blood count down its branches to a leaf holding the share of severe visits it saw in training, with both classes weighted equally. The average of those ${leaves.length} shares is <b>${fx(p * 100, 0)}%</b>, above about ${fx(s * 10, 0)}% of the ${SV.ref_n.toLocaleString()} real visits, so the score is <b>${fx(s, 1)}</b> out of 10.`;
+    $("#ex-real").innerHTML = `On patients it never saw, the same recipe ranks a severe visit above a non-severe one ${fx(SV.heldout_auc * 100, 0)}% of the time (AUC ${fx(SV.heldout_auc, 3)}), and about 1 severe visit in ${Math.round(SV.severe_total / SV.severe_scored_5_or_less)} still scores 5 or less.`;
     const top = [...steps].sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, 4), rest = steps.filter(x => !top.includes(x));
     const restSum = rest.reduce((a, x) => a + x[1], 0);
     const rows = [...top, ...(rest.length ? [[`${rest.length} other value${rest.length > 1 ? "s" : ""}`, restSum]] : [])];
-    const mx = Math.max(.05, ...rows.map(r => Math.abs(r[1])));
+    const mx = Math.max(.5, ...rows.map(r => Math.abs(r[1])));
     const bar = d => `<div class="trk"><i style="${d >= 0 ? "left:50%" : `left:${50 - 50 * Math.abs(d) / mx}%`};width:${50 * Math.abs(d) / mx}%;background:${d >= 0 ? C.red : C.cyan}"></i></div>`;
-    const pts = d => `${d >= 0 ? "+" : "−"}${Math.abs(d * 100).toFixed(1)}`;
-    $("#wf").innerHTML = `<span>Typical patient (all medians)</span><div></div><span class="val">${fx(p0 * 100, 1)}%</span>` +
-      (rows.length ? rows.map(([n, d]) => `<span>${NICE[n] || n}${base[n] != null ? ` <small style="color:var(--muted)">${fx(vals[n], vals[n] > 50 ? 0 : 1)}</small>` : ""}</span>${bar(d)}<span class="val" style="color:${d >= 0 ? C.red : C.cyan}">${pts(d)}</span>`).join("")
-        : `<span style="grid-column:1/-1;color:var(--muted)">Every value sits at the median, so the needle stays at the baseline.</span>`) +
-      `<span class="tot">This patient</span><div></div><span class="val tot">${fx(p * 100, 1)}%</span>`;
+    const pts = d => `${d >= 0 ? "+" : "−"}${fx(Math.abs(d), 1)}`;
+    $("#wf").innerHTML = `<span>Typical patient (all medians)</span><div></div><span class="val">${fx(s0, 1)}</span>` +
+      (rows.length ? rows.map(([n, d]) => `<span>${NICE[n] || n}${base[n] != null ? ` <small style="color:var(--muted)">${n === "Sex" ? (vals.Sex ? "male" : "female") : fx(vals[n], vals[n] > 50 ? 0 : 1)}</small>` : ""}</span>${bar(d)}<span class="val" style="color:${d >= 0 ? C.red : C.cyan}">${pts(d)}</span>`).join("")
+        : `<span style="grid-column:1/-1;color:var(--muted)">Every value sits at the median, so the needle stays at the typical patient's score.</span>`) +
+      `<span class="tot">This patient</span><div></div><span class="val tot">${fx(s, 1)}</span>`;
   }
+  markPre(PR.findIndex(q => q.kind === "median"));
   update();
   triage();
 }
@@ -775,16 +831,17 @@ function triage() {
     const c = cases[i], my = ++token;
     $$(".case").forEach((x, k) => x.classList.toggle("on", k === i));
     const pc = c.g.p_ens, imgPos = pc >= .5, pcr = c.g.truth === "COVID", pb = c.b ? forestPredict({ ...Object.fromEntries(F.meta.raw.map((n, k) => [n, F.meta.raw_med[k]])), ...c.b }) : null;
+    const sb = pb == null ? null : sevScore(pb), sn = sb == null ? "" : `${fx(sb, 1)}/10 (${sevBand(sb).name.toLowerCase()})`;
     let final;
     if (imgPos !== pcr) final = ["review", "Radiologist review", "AI and RT-PCR disagree — escalate to a human expert before any bed decision."];
     else if (!imgPos) final = ["clear", "Not COVID-19", "Consistent negative: continue differential work-up; no severity panel needed."];
-    else if (pb >= .5) final = ["icu", "→ Intensive Care Unit", `Blood-based severity risk ${(pb * 100).toFixed(0)}% — continuous monitoring recommended.`];
-    else final = ["ward", "→ General ward", `Blood-based severity risk ${(pb * 100).toFixed(0)}% — treat on ward, re-test if symptoms worsen.`];
+    else if (sb >= 6.5) final = ["icu", "→ Intensive Care Unit", `Blood severity ${sn}: continuous monitoring recommended.`];
+    else final = ["ward", "→ General ward", `Blood severity ${sn}: treat on ward, re-test if symptoms worsen.`];
     const steps = [
       ["🧪", "RT-PCR <i style='color:var(--muted)'>(simulated)</i>", "derived from the scan's label to demo routing", pcr ? "POSITIVE" : "NEGATIVE", pcr ? C.red : C.green],
       [ICON_XRAY, "Imaging AI (calibrated ensemble)", `${c.g.truth === "COVID" || c.g.p_ens >= .5 ? "" : ""}P(COVID) from CovidNet-Plus × HGB`, `${(pc * 100).toFixed(1)}%`, imgPos ? C.red : C.green],
       ["🔥", "Grad-CAM++ evidence", "regions that drove the decision", `<img src="assets/gradcam/${c.g.id}_plus.jpg" style="width:64px;height:64px;border-radius:10px;object-fit:cover">`, ""],
-      ["🩸", "Blood severity forest", c.b ? "120 trees evaluated in your browser" : "skipped — not COVID-19", pb == null ? "—" : `${(pb * 100).toFixed(0)}%`, pb >= .5 ? C.red : C.green],
+      ["🩸", "Blood severity forest", c.b ? "120 trees evaluated in your browser" : "skipped — not COVID-19", sb == null ? "—" : `${fx(sb, 1)}/10`, sb == null ? "" : sevCol(sb)],
     ];
     const board = $("#triage-board");
     board.innerHTML = `<div class="t-imgs"><img src="assets/gradcam/${c.g.id}_orig.jpg" alt="scan"></div><div class="t-steps" style="margin-top:16px">${steps.map(s => `<div class="t-step"><div class="i">${s[0]}</div><div><b>${s[1]}</b><small>${s[2]}</small></div><div class="r" style="color:${s[4]}">${s[3]}</div></div>`).join("")}</div><div class="t-final ${final[0]}"><h4>${final[1]}</h4><p>${final[2]}</p></div>`;

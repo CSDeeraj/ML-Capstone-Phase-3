@@ -279,29 +279,33 @@
   <div class="sec-head reveal">
     <span class="kicker">11 · Live demo</span>
     <h2>Run the model <span class="grad">in your browser</span></h2>
-    <p>A 120-tree Extra-Trees forest (the ensemble's ERT member) ships as a few hundred kB of JSON and evaluates entirely client-side. No data leaves the page. Research demo — not a medical device.</p>
+    <p>A 120-tree Extra-Trees forest (the ensemble's ERT member) ships as a few hundred kB of JSON and evaluates entirely client-side. Its output is read on a 0–10 severity scale built from the 4,430 real hospital visits: pick a preset and watch the sliders move to that patient's blood count. No data leaves the page. Research demo — not a medical device.</p>
   </div>
   <div class="live reveal">
     <div class="glass live-inputs">
       <div class="presets" id="presets"></div>
+      <p class="preset-note" id="preset-note"></p>
       <div id="sliders"></div>
       <button class="btn ghost small" id="more-toggle">Show all CBC parameters</button>
     </div>
     <div class="glass live-out">
-      <div class="gauge-wrap"><svg viewBox="0 0 200 120" class="gauge"><defs><linearGradient id="gg" x1="0" x2="1"><stop offset="0" stop-color="#34d399"/><stop offset=".5" stop-color="#fbbf24"/><stop offset="1" stop-color="#fb7185"/></linearGradient></defs>
+      <div class="gauge-wrap"><svg viewBox="0 0 200 120" class="gauge" role="img" aria-label="Severity meter from 0 to 10"><defs><linearGradient id="gg" x1="0" x2="1"><stop offset="0" stop-color="#34d399"/><stop offset=".5" stop-color="#fbbf24"/><stop offset="1" stop-color="#fb7185"/></linearGradient></defs>
         <path d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="14" stroke-linecap="round"/>
         <path id="g-arc" d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke="url(#gg)" stroke-width="14" stroke-linecap="round" stroke-dasharray="251" stroke-dashoffset="251"/>
-        <line id="g-needle" x1="100" y1="100" x2="100" y2="38" stroke="#fff" stroke-width="3" stroke-linecap="round" transform="rotate(-90 100 100)"/><circle cx="100" cy="100" r="7" fill="#fff"/></svg>
-        <div class="gauge-num"><span id="g-pct">0</span>%</div></div>
+        <line id="g-needle" x1="100" y1="100" x2="100" y2="38" stroke="#fff" stroke-width="3" stroke-linecap="round" transform="rotate(-90 100 100)"/><circle cx="100" cy="100" r="7" fill="#fff"/>
+        <text x="20" y="119" class="g-tick">0</text><text x="100" y="9" class="g-tick">5</text><text x="180" y="119" class="g-tick">10</text></svg>
+        <div class="gauge-num"><span id="g-score">0</span><small>/10</small></div></div>
       <div class="verdict" id="verdict"></div>
+      <div class="sev-scale" id="sev-scale" aria-label="Severity bands"></div>
+      <p class="sev-line" id="sev-line"></p>
       <div class="why" id="why"></div>
       <div class="explain" id="explain">
-        <h4>Why <span id="ex-pct">0</span>%?</h4>
+        <h4>Why <span id="ex-pct">0</span> out of 10?</h4>
         <div class="votes" id="votes" role="img" aria-label="Severity vote of each of the 120 trees"></div>
         <p class="ex-line" id="ex-votes"></p>
         <div class="wf" id="wf"></div>
         <p class="ex-line" id="ex-real" style="margin-top:12px"></p>
-        <p class="ex-band">The needle is a risk score, not a verdict. Bands: under 30% general ward, 30–55% close monitoring, 55% and above ICU review. In the data, about 1 visit in 4 was severe (<span id="ex-base">24.6</span>%).</p>
+        <p class="ex-band">The score is a rank, not a diagnosis: 5 means about half of the real hospital visits score lower. "Severe" is San Raffaele Hospital's own label on each visit, and every visit carrying the dataset's death flag is labelled severe. In the data, about 1 visit in 4 was severe (<span id="ex-base">24.6</span>%). The severe and death rates shown for each score come from patients the model never saw (patient-grouped 10-fold), so they are not flattered by training.</p>
       </div>
     </div>
   </div>
@@ -359,6 +363,7 @@ python src/export_site.py                   # refresh this website's data</code>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="data/results.js"></script>
 <script src="data/forest.js"></script>
+<script src="data/severity.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>
