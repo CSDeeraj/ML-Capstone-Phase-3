@@ -32,7 +32,7 @@ Model: the proposed **stacked ensemble** (Optuna‑tuned ERT + LightGBM + XGBoos
 
 Results: _filled in from `results/imaging_tests_{xray,ct}.json` after the PC run._
 
-The tested models are the fold‑0 models saved by the default (quick/full) profile, not the paper‑protocol runs, which do not save models.
+The tested models are the fold‑0 models saved by the default (quick/full) profile, not the paper‑protocol (SMOTE‑ENN) runs, whose scores are reported separately.
 
 ## How to say it in the viva
 "On new patients our model reaches AUC 0.90, and 0.86 on a later group of patients. It stays stable across sex and age, degrades gradually with lab noise, and gives 0.5 on shuffled labels, so the pipeline does not leak. Its weak point is the first visit, where AUC falls to 0.73. That tells us severity from a routine blood count is easier to confirm than to predict at admission, and it is the clearest direction for future work."
