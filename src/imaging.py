@@ -567,7 +567,7 @@ if __name__ == "__main__":
     if a.profile == "paper" and a.balance != "none":
         raise SystemExit("--profile paper already applies SMOTE-ENN to the whole dataset; use --balance none with it")
     prefix = f"imaging_{'xray' if mod == 'x-ray' else 'ct'}" + ("" if a.balance == "none" else f"_{a.balance}")
-    run(mod, a.profile, a.folds or PROFILES[a.profile]["folds"], prefix, a.balance)
     if a.profile == "paper":  # separate results file so it never overwrites the full-profile results
         run_paper(mod, a.folds or PROFILES["paper"]["folds"], f"imaging_{'xray' if mod == 'x-ray' else 'ct'}_paper", a.subset)
         raise SystemExit
+    run(mod, a.profile, a.folds or PROFILES[a.profile]["folds"], prefix, a.balance)
