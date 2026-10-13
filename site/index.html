@@ -26,6 +26,7 @@
     <a href="#xai">Explainability</a>
     <a href="#blood">Blood</a>
     <a href="#tests">Test cases</a>
+    <a href="#stress">Stress lab</a>
     <a href="#numbers">Numbers</a>
     <a href="#live">Live demo</a>
     <a href="#upgrades">Upgrades</a>
@@ -222,15 +223,49 @@
     <div class="glass chart-card reveal d2"><h3>T7 · Mortality as an outside check</h3><div id="tc-mort" class="tc-mort"></div></div>
   </div>
   <div class="glass table-card reveal"><h3>T4 · Operating points <small>thresholds chosen on training folds only</small></h3><div class="table-scroll"><table id="tc-ops"></table></div></div>
-  <div class="glass table-card reveal"><h3>Imaging · corruption and shortcut tests <small>fold-0 held-out scans · src/imaging_tests.py</small></h3>
-    <div class="tabs" id="it-tabs"><button class="tab active" data-m="xray">Chest X-ray</button><button class="tab" data-m="ct">CT scan</button></div>
-    <div id="it-body"></div></div>
+  <p class="note reveal">The image models get their own torture test next, in the <a href="#stress" style="color:var(--cyan)">stress lab</a>.</p>
+</section>
+
+<!-- ============================ IMAGE STRESS LAB ============================ -->
+<section id="stress" class="sec">
+  <div class="sec-head reveal">
+    <span class="kicker">09 · Image stress lab</span>
+    <h2>We tried to <span class="grad">break the image models</span></h2>
+    <p>Noise, blur, tilted scans, cables and labels covering the film, heavy compression, and finally the lungs blacked out. Every test runs on held-out scans the models never trained on. A model that has learned real lung patterns should bend slowly as the image degrades, and it should fail once the lungs are hidden.</p>
+  </div>
+  <div class="tabs reveal" id="st-tabs"><button class="tab active" data-m="xray">Chest X-ray</button><button class="tab" data-m="ct">CT scan</button></div>
+  <p class="note reveal" id="st-note"></p>
+  <div id="st-body">
+    <div class="kpis" id="st-kpis"></div>
+    <div class="glass stress reveal">
+      <div class="st-view" id="st-view">
+        <div class="st-frame"><canvas id="st-img" width="100" height="100" aria-label="Sample scan with the selected corruption applied"></canvas></div>
+        <div class="st-cap"><b id="st-cap-t">Clean</b><span>what the model sees · 100 × 100 px</span></div>
+      </div>
+      <div class="st-ctrl">
+        <h3>Stress dial <small>pick a corruption, then turn it up</small></h3>
+        <div class="seg" id="st-kind"></div>
+        <div class="st-slide"><input type="range" id="st-level" min="0" max="5" step="1" value="0" aria-label="Corruption strength"><div class="st-ticks" id="st-ticks"></div></div>
+        <div class="st-read" id="st-read"></div>
+        <button class="btn ghost small" id="st-play">❚❚ Pause</button>
+        <div class="chart-box short"><canvas id="ch-st-sweep"></canvas></div>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="glass chart-card reveal"><h3>Every test, side by side <small>accuracy on the same held-out scans</small></h3><div class="chart-box tall"><canvas id="ch-st-cases"></canvas></div></div>
+      <div class="glass reveal d1"><h3>Does it look at the lungs? <small>the shortcut check</small></h3><div class="st-trio" id="st-trio"></div><p class="st-verdict" id="st-verdict"></p></div>
+    </div>
+    <div class="grid2">
+      <div class="glass chart-card reveal"><h3>Scans it has never seen in any form <small>test scans split by whether an identical copy sits in training</small></h3><div class="chart-box short"><canvas id="ch-st-dup"></canvas></div><p class="st-foot" id="st-dup-note"></p></div>
+      <div class="glass reveal d1"><h3>How sure is it when it's wrong? <small>confidence on clean scans</small></h3><div id="st-conf"></div></div>
+    </div>
+  </div>
 </section>
 
 <!-- ============================ WHY THESE NUMBERS ============================ -->
 <section id="numbers" class="sec">
   <div class="sec-head reveal">
-    <span class="kicker">09 · Reading the numbers</span>
+    <span class="kicker">10 · Reading the numbers</span>
     <h2>Why each result lands <span class="grad">where it does</span></h2>
     <p>Every headline percentage on this page, set beside the paper's, with what moves it up or down. Dots are the ten cross-validation folds; the diamond is the paper.</p>
   </div>
@@ -241,7 +276,7 @@
 <!-- ============================ LIVE ============================ -->
 <section id="live" class="sec">
   <div class="sec-head reveal">
-    <span class="kicker">10 · Live demo</span>
+    <span class="kicker">11 · Live demo</span>
     <h2>Run the model <span class="grad">in your browser</span></h2>
     <p>A 120-tree Extra-Trees forest (the ensemble's ERT member) ships as a few hundred kB of JSON and evaluates entirely client-side. No data leaves the page. Research demo — not a medical device.</p>
   </div>
@@ -271,7 +306,7 @@
   </div>
 
   <div class="sec-head reveal triage-head">
-    <span class="kicker">11 · Smart-lab simulator</span>
+    <span class="kicker">12 · Smart-lab simulator</span>
     <h3 class="h3big">Put it all together: <span class="grad">triage a patient</span></h3>
     <p>Pick a case. The simulator runs the imaging model on a real held-out scan, the blood forest on real lab values, and routes the patient.</p>
   </div>
@@ -284,7 +319,7 @@
 <!-- ============================ UPGRADES ============================ -->
 <section id="upgrades" class="sec">
   <div class="sec-head reveal">
-    <span class="kicker">12 · Beyond the paper</span>
+    <span class="kicker">13 · Beyond the paper</span>
     <h2>Every upgrade, <span class="grad">and why it earns its place</span></h2>
     <p>Practical, technical and theoretical reasons behind each addition.</p>
   </div>
@@ -294,7 +329,7 @@
 <!-- ============================ HONESTY ============================ -->
 <section id="honesty" class="sec">
   <div class="sec-head reveal">
-    <span class="kicker">13 · Limits</span>
+    <span class="kicker">14 · Limits</span>
     <h2>What this does <span class="grad">not</span> show</h2>
   </div>
   <div class="cards3" id="limits"></div>
@@ -309,7 +344,7 @@ python src/imaging.py --modality xray --profile quick   # comparison models, one
 python src/blood.py --profile full
 python src/data_audit.py                    # data inconsistencies
 python src/test_cases.py                    # blood test cases T1-T9
-python src/imaging_tests.py --modality xray # corruption + shortcut tests
+python src/imaging_tests.py --modality xray # stress lab: corruptions, sweeps, shortcut tests
 python src/export_site.py                   # refresh this website's data</code></pre>
   </div>
 </section>
